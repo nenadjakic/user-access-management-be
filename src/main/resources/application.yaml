@@ -1,0 +1,14 @@
+user-access-management:
+  mail-mq:
+    queue-name: mail-queue
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:2003/user-access-management-db
+    driverClassName: org.postgresql.Driver
+    username: postgres
+    password: postgres
+
+  jpa:
+    hibernate:
+      ddl-auto: update
