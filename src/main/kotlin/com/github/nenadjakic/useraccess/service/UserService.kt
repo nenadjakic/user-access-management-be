@@ -14,6 +14,8 @@ import com.github.nenadjakic.useraccess.repository.UserRepository
 import com.github.nenadjakic.useraccess.repository.VerificationTokenRepository
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.core.RabbitTemplate
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import java.time.OffsetDateTime
@@ -129,4 +131,23 @@ class UserService(
         user.password = passwordEncoder.encode(request.password)
         userRepository.save(user)
     }
+
+    open fun getAllUsers(pageable: Pageable): Page<User> =
+        userRepository.findAll(pageable)
+
+
+    open fun getById(id: UUID): User = userRepository.findById(id).orElseThrow { throw GeneralException("User not found") }
+
+    open fun unlockUser(id: UUID) =
+        userRepository.findById(id)
+            .orElseThrow { throw GeneralException("User not found") }
+            .apply { locked = false }
+            .let { userRepository.save(it) }
+
+    open fun disableUser(id: UUID) =
+        userRepository.findById(id)
+            .orElseThrow { throw GeneralException("User not found") }
+            .apply { enabled = false }
+            .let { userRepository.save(it) }
+
 }
