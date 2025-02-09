@@ -10,6 +10,7 @@ import com.github.nenadjakic.useraccess.entity.VerificationToken
 import com.github.nenadjakic.useraccess.exception.EntityExistsException
 import com.github.nenadjakic.useraccess.exception.GeneralException
 import com.github.nenadjakic.useraccess.repository.PasswordResetTokenRepository
+import com.github.nenadjakic.useraccess.repository.RoleRepository
 import com.github.nenadjakic.useraccess.repository.UserRepository
 import com.github.nenadjakic.useraccess.repository.VerificationTokenRepository
 import org.slf4j.LoggerFactory
@@ -24,6 +25,7 @@ import java.util.*
 @Service
 class UserService(
     private val userRepository: UserRepository,
+    private val roleRepository: RoleRepository,
     private val verificationTokenRepository: VerificationTokenRepository,
     private val passwordResetTokenRepository: PasswordResetTokenRepository,
     private val rabbitTemplate: RabbitTemplate,
@@ -150,4 +152,17 @@ class UserService(
             .apply { enabled = false }
             .let { userRepository.save(it) }
 
+    open fun addRole(id: UUID, role_id: UUID) {
+        userRepository.findById(id)
+            .orElseThrow { throw GeneralException("User not found") }
+            .apply { addRole(roleRepository.getReferenceById(role_id)) }
+            .let { userRepository.save(it) }
+    }
+
+    open fun removeRole(id: UUID, role_id: UUID) {
+        userRepository.findById(id)
+            .orElseThrow { throw GeneralException("User not found") }
+            .apply { removeRoleById(role_id) }
+            .let { userRepository.save(it) }
+    }
 }

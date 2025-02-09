@@ -38,7 +38,7 @@ class RoleController(
      * @param page the page number (0-based), default is 0.
      * @param size the number of items per page, default is 10.
      *
-     * @return ResponseEntity<Page<RoleResponse>> representing the paginated list of roles.
+     * @return [ResponseEntity] representing the paginated list of roles.
      */
     @Operation(
         operationId = "getAllRoles",
@@ -65,7 +65,7 @@ class RoleController(
      * using its unique identifier.<
      *
      * @param id the unique identifier of the role.
-     * @return @link ResponseEntity containing the role details if found.
+     * @return [ResponseEntity] containing the role details if found.
      */
     @Operation(
         operationId = "getRoleById",
@@ -91,7 +91,6 @@ class RoleController(
      *
      * @param request The [RoleRequest] containing role details.
      * @return [ResponseEntity] with HTTP 201 Created status and Location header.
-     * @throws ResponseStatusException if validation fails or the role already exists.
      */
     @Operation(
         operationId = "createRole",

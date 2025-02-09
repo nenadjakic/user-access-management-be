@@ -54,4 +54,10 @@ class User : AbstractEntity<UUID>() {
             _roles.clear()
             _roles.addAll(value)
         }
+   fun addRole(role: Role?) {
+        role?.let {
+            _roles.add(it)
+        }
+    }
+    fun removeRoleById(role_id: UUID) = _roles.removeIf { it.id == role_id }
 }

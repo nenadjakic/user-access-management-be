@@ -37,7 +37,7 @@ class UserController(
      * @param size The number of users per page. Default is 10.
      * @param sort A list of sorting parameters in the format "field,direction".
      *             Example: sort=username,asc&sort=email,desc
-     * @return ResponseEntity<Page<UserResponse>> representing a paginated list of users.
+     * @return [ResponseEntity] representing a paginated list of users.
      */
     @Operation(
         operationId = "getAllUsers",
@@ -71,7 +71,7 @@ class UserController(
      * Regular users can only retrieve their own profile.
      *
      * @param id The unique identifier of the user.
-     * @return ResponseEntity<UserResponse> containing the user details.
+     * @return [ResponseEntity] containing the user details.
      */
     @Operation(
         operationId = "getUserById",
@@ -96,7 +96,7 @@ class UserController(
      * or other security reasons.
      *
      * @param id The ID of the user to be unlocked.
-     * @return ResponseEntity<Void> indicating success.
+     * @return [ResponseEntity] indicating success.
      */
     @Operation(
         operationId = "unlockUser",
@@ -122,7 +122,7 @@ class UserController(
      * This endpoint allows an admin to disable a user's account, preventing them from logging in.
      *
      * @param id The ID of the user to be disabled.
-     * @return ResponseEntity<Void> indicating success.
+     * @return [ResponseEntity] indicating success.
      */
     @Operation(
         operationId = "disableUser",
@@ -140,5 +140,63 @@ class UserController(
     fun disableUser(@PathVariable id: UUID): ResponseEntity<Void> {
         userService.disableUser(id)
         return ResponseEntity.ok().build()
+    }
+
+    /**
+     * Assigns a role to a user.
+     *
+     * This endpoint allows administrators to assign a role to a user by specifying
+     * the user's ID and the role's ID. If the role is already assigned, no changes are made.
+     *
+     * @param userId The unique identifier of the user.
+     * @param roleId The unique identifier of the role to be assigned.
+     * @return [ResponseEntity] with HTTP 204 No Content if successful.
+     */
+    @Operation(
+        operationId = "assignRoleToUser",
+        summary = "Assign a role to a user",
+        description = "Allows administrators to assign a role to a user by specifying the user's ID and the role's ID."
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "204", description = "Role successfully assigned to user."),
+        ]
+    )
+    @PostMapping("/{id}/roles")
+    fun assignRoleToUser(
+        @PathVariable("id") userId: UUID,
+        @RequestParam("role_id") roleId: UUID
+    ): ResponseEntity<Void> {
+        userService.addRole(userId, roleId)
+        return ResponseEntity.noContent().build()
+    }
+
+    /**
+     * Removes a role from a user.
+     *
+     * This endpoint allows administrators to remove a specific role from a user.
+     * If the user does not have the role, no changes are made.
+     *
+     * @param userId The unique identifier of the user.
+     * @param roleId The unique identifier of the role to be removed.
+     * @return [ResponseEntity] with HTTP 204 No Content if successful.
+     */
+    @Operation(
+        operationId = "removeRoleFromUser",
+        summary = "Remove a role from a user",
+        description = "Allows administrators to remove a specific role from a user."
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "204", description = "Role successfully removed from user.")
+        ]
+    )
+    @DeleteMapping("/{id}/roles/{role_id}")
+    fun removeRoleFromUser(
+        @PathVariable("id") userId: UUID,
+        @PathVariable("role_id") roleId: UUID
+    ): ResponseEntity<Void> {
+        userService.removeRole(userId, roleId)
+        return ResponseEntity.noContent().build()
     }
 }
