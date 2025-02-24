@@ -10,6 +10,12 @@ class SignInRequest {
     }
 
     @NotEmpty
+    lateinit var clientId: String
+
+    @NotEmpty
+    lateinit var clientSecret: String
+
+    @NotEmpty
     lateinit var username: String
 
     @NotEmpty

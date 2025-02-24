@@ -1,12 +1,22 @@
 package com.github.nenadjakic.useraccess.service
 
+import com.github.nenadjakic.useraccess.config.UserAccessManagementProperties
+import com.github.nenadjakic.useraccess.exception.GeneralException
 import com.github.nenadjakic.useraccess.security.model.LocalUserDetails
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
+import io.jsonwebtoken.SignatureAlgorithm
 import io.jsonwebtoken.io.Decoders
 import io.jsonwebtoken.security.Keys
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import java.io.File
+import java.nio.file.Files
+import java.security.KeyFactory
+import java.security.PrivateKey
+import java.security.PublicKey
+import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.X509EncodedKeySpec
 import java.time.OffsetDateTime
 import java.util.*
 import java.util.stream.Collectors
@@ -17,20 +27,40 @@ import javax.crypto.SecretKey
  */
 @Service
 open class JwtService(
-    @Value("\${eav-platform.security.jwt.secret-key}") private val secretKey: String,
-    @Value("\${eav-platform.security.jwt.access-token.valid-minutes}") private val accessTokenValidMinutes: Long
+    private val userAccessManagementProperties: UserAccessManagementProperties
 ) {
+    private val privateKey: PrivateKey by lazy { loadPrivateKey(userAccessManagementProperties.jwt.privateKeyPath) }
+    private val publicKey: PublicKey by lazy { loadPublicKey(userAccessManagementProperties.jwt.publicKeyPath) }
+    private val accessTokenValidMinutes = userAccessManagementProperties.jwt.validMinutes
 
-    open fun createToken(user: LocalUserDetails): String {
-        return createToken(user, mutableMapOf())
+    private fun loadPrivateKey(path: String): PrivateKey {
+        val keyBytes = Files.readAllBytes(File(path).toPath())
+        val spec = PKCS8EncodedKeySpec(keyBytes)
+        return KeyFactory.getInstance("RSA").generatePrivate(spec)
     }
 
-    open fun createToken(user: LocalUserDetails, claims: MutableMap<String, Any>): String {
+    private fun loadPublicKey(path: String): PublicKey {
+        val keyBytes = Files.readAllBytes(File(path).toPath())
+        val spec = X509EncodedKeySpec(keyBytes)
+        return KeyFactory.getInstance("RSA").generatePublic(spec)
+    }
+
+    open fun createToken(user: LocalUserDetails, clientId: String, clientSecret: String): String {
+        return createToken(user, clientId, clientSecret, mutableMapOf())
+    }
+
+    open fun createToken(user: LocalUserDetails, clientId: String, clientSecret: String, claims: MutableMap<String, Any>): String {
+        val clientConfig = userAccessManagementProperties.clients[clientId]
+        if (clientConfig == null || clientConfig.clientSecret != clientSecret) {
+            throw GeneralException("Incorrect client id or/and secret.")
+        }
+
         val created = Date(OffsetDateTime.now().toEpochSecond() * 1000)
         val expireAt = Date((OffsetDateTime.now().toEpochSecond() + (accessTokenValidMinutes * 60)) * 1000)
 
         val roles = user.authorities.stream().map { it.authority } .collect(Collectors.toList())
         claims["roles"] = roles
+        claims["aud"] = clientId
 
         return Jwts
             .builder()
@@ -38,7 +68,7 @@ open class JwtService(
             .subject(user.username)
             .issuedAt(created)
             .expiration(expireAt)
-            .signWith(getSignInKey())
+            .signWith(privateKey)
             .compact()
     }
 
@@ -52,7 +82,7 @@ open class JwtService(
     open fun extractAllClaims(token: String): Claims {
         return Jwts
             .parser()
-            .verifyWith(getSignInKey())
+            .verifyWith(publicKey)
             .build()
             .parseSignedClaims(token)
             .payload
@@ -102,22 +132,18 @@ open class JwtService(
      * @return true if the token is valid, false otherwise.
      * @throws io.jsonwebtoken.JwtException if there is an error while checking the token validity.
      */
-    open fun isValid(token: String): Boolean {
+    open fun isValid(token: String, expectedClientId: String): Boolean {
         try {
-            Jwts.parser().verifyWith(getSignInKey()).build().parseSignedClaims(token)
-            return !isTokenExpired(token)
+            val claims = extractAllClaims(token)
+
+            val expireAt = claims.expiration
+            if (expireAt.before(Date())) {
+                return false
+            }
+
+            return expectedClientId == claims["aud"] as? String
         } catch (ex: Exception) {
             return false
         }
-    }
-
-    /**
-     * Retrieves the signing key used for JWT token generation.
-     *
-     * @return The signing key as a SecretKey.
-     */
-    private fun getSignInKey(): SecretKey {
-        val keyBytes = Decoders.BASE64.decode(secretKey)
-        return Keys.hmacShaKeyFor(keyBytes)
     }
 }
