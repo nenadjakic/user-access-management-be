@@ -199,8 +199,8 @@ class AuthController(
     }
 
 
-    fun createTokenResponse(user: LocalUserDetails): TokenResponse {
-        val accessToken = jwtService.createToken(user)
+    fun createTokenResponse(user: LocalUserDetails, clientId: String, clientSecret: String): TokenResponse {
+        val accessToken = jwtService.createToken(user, clientId, clientSecret)
         val refreshToken = refreshTokenService.create(user.username)!!.token
         return TokenResponse(accessToken, refreshToken)
     }

@@ -8,8 +8,21 @@ import org.springframework.stereotype.Component
 class UserAccessManagementProperties {
 
     var mailMq: MailMqProperties = MailMqProperties()
+    var jwt: JwtProperties = JwtProperties()
+    var clients: Map<String, ClientConfig> = emptyMap()
 
     class MailMqProperties {
         lateinit var queueName: String
+    }
+
+    class JwtProperties {
+        lateinit var privateKeyPath: String
+        lateinit var publicKeyPath: String
+        var validMinutes: Long = 10
+    }
+
+    class ClientConfig {
+        lateinit var clientId: String
+        lateinit var clientSecret: String
     }
 }

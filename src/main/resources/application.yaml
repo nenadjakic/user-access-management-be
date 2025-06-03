@@ -1,6 +1,17 @@
 user-access-management:
   mail-mq:
     queue-name: mail-queue
+  jwt:
+    private-key-path: src/main/resources/private_key.pem
+    public-key-path: src/main/resources/public_key.pem
+    valid-minutes: 60
+  clients:
+    service-y:
+      client-id: service-y
+      client-secret: secret123
+    service-z:
+      client-id: service-z
+      client-secret: secret456
 
 spring:
   datasource:
