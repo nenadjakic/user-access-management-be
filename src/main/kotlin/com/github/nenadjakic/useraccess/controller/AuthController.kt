@@ -19,6 +19,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
+import java.util.UUID
 
 @Tag(name = "Authentication controller", description = "API endpoints for user authentication.")
 @RestController
@@ -84,7 +85,7 @@ class AuthController(
         ]
     )
     @GetMapping("/verify-email")
-    fun verifyEmail(@RequestParam(name = "token") token: String): ResponseEntity<Void> {
+    fun verifyEmail(@RequestParam(name = "token") token: UUID): ResponseEntity<Void> {
         userService.verifyEmail(token)
         return ResponseEntity.ok().build()
     }
@@ -120,11 +121,11 @@ class AuthController(
                 UsernamePasswordAuthenticationToken(signInRequest.username, signInRequest.passwordOrRefreshToken)
             val authUser: Authentication? = authenticationManager.authenticate(usernamePassword)
 
-            return ResponseEntity.ok(createTokenResponse(authUser?.principal as LocalUserDetails))
+            return ResponseEntity.ok(createTokenResponse(authUser?.principal as LocalUserDetails, signInRequest.clientId))
         } else if (signInRequest.grantType == SignInRequest.GrantType.REFRESH_TOKEN) {
             val refreshTokenEntity =
                 refreshTokenService.findByUsernameAndToken(signInRequest.username, signInRequest.passwordOrRefreshToken)
-            return ResponseEntity.ok(createTokenResponse(LocalUserDetails(refreshTokenEntity.user)))
+            return ResponseEntity.ok(createTokenResponse(LocalUserDetails(refreshTokenEntity.user), signInRequest.clientId))
         }
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
     }
@@ -199,8 +200,8 @@ class AuthController(
     }
 
 
-    fun createTokenResponse(user: LocalUserDetails, clientId: String, clientSecret: String): TokenResponse {
-        val accessToken = jwtService.createToken(user, clientId, clientSecret)
+    fun createTokenResponse(user: LocalUserDetails, clientId: String): TokenResponse {
+        val accessToken = jwtService.createToken(user, clientId)
         val refreshToken = refreshTokenService.create(user.username)!!.token
         return TokenResponse(accessToken, refreshToken)
     }

@@ -1,6 +1,9 @@
 package com.github.nenadjakic.useraccess.entity
 
 import jakarta.persistence.*
+import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.annotation.LastModifiedDate
+import java.time.OffsetDateTime
 import java.util.UUID
 
 @Entity
@@ -60,4 +63,13 @@ class User : AbstractEntity<UUID>() {
         }
     }
     fun removeRoleById(role_id: UUID) = _roles.removeIf { it.id == role_id }
+
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    lateinit var createdAt: OffsetDateTime
+
+    @LastModifiedDate
+    @Column(name = "last_modified_at", nullable = true, insertable = false)
+    lateinit var modifiedAt: OffsetDateTime
 }

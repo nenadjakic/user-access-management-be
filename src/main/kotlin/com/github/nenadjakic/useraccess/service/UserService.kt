@@ -21,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import java.time.OffsetDateTime
 import java.util.*
+import kotlin.jvm.optionals.getOrNull
 
 @Service
 class UserService(
@@ -62,8 +63,8 @@ class UserService(
         return savedUser
     }
 
-    open fun verifyEmail(token: String) {
-        val verificationToken = verificationTokenRepository.findByToken(token) ?: throw GeneralException("Confirmation url is incorrect.")
+    open fun verifyEmail(token: UUID) {
+        val verificationToken = verificationTokenRepository.findById(token).getOrNull() ?: throw GeneralException("Confirmation url is incorrect.")
 
         if (verificationToken.expireAt.isBefore(OffsetDateTime.now())) {
             throw GeneralException("Verification url was expired.")

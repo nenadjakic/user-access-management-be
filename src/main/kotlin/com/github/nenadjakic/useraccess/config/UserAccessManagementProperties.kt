@@ -16,13 +16,12 @@ class UserAccessManagementProperties {
     }
 
     class JwtProperties {
-        lateinit var privateKeyPath: String
-        lateinit var publicKeyPath: String
         var validMinutes: Long = 10
     }
 
     class ClientConfig {
         lateinit var clientId: String
-        lateinit var clientSecret: String
+        lateinit var privateKeyPath: String
+        lateinit var publicKeyPath: String
     }
 }

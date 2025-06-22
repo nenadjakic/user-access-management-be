@@ -13,6 +13,8 @@ import java.util.UUID
  * @property enabled indicates if the user's account is enabled
  * @property roles a collection of role names assigned to the user
  */
+
+@ConsistentCopyVisibility
 data class UserResponse private constructor(
     val id: UUID,
     val username: String,

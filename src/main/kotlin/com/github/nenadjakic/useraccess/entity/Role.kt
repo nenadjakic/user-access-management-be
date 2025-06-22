@@ -11,12 +11,15 @@ import java.util.*
         UniqueConstraint(name = "uq_security_roles_name", columnNames = ["name"])
     ]
 )
-@AttributeOverride(name = "name", column = Column(name = "name", nullable = false, unique = true, length = 255))
 class Role : AbstractNameEntity<UUID>() {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false, unique = true, length = 36)
     override var id: UUID? = null
+
+    @Column(name = "name", nullable = false, unique = true, length = 75)
+    override lateinit var name: String
 
     @ManyToMany(cascade = [CascadeType.PERSIST, CascadeType.MERGE])
     @JoinTable(schema = "security", name = "role_permission",

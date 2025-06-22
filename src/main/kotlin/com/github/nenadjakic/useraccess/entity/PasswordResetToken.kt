@@ -7,7 +7,7 @@ import java.util.*
 @Entity
 @Table(
     schema = "security",
-    name = "password_reset_token"
+    name = "password_reset_tokens"
 )
 class PasswordResetToken() : AbstractEntity<UUID>() {
 
@@ -16,10 +16,12 @@ class PasswordResetToken() : AbstractEntity<UUID>() {
     @Column(name = "id", nullable = false, unique = true, length = 36)
     override var id: UUID? = null
 
-    @OneToOne
-    @MapsId
-    @JoinColumn(name = "id", nullable = false)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id", nullable = false)
     lateinit var user: User
+
+    @Column(name = "token", nullable = false, length = 100, unique = true)
+    lateinit var token: String
 
     @Column(name = "expire_at", nullable = false)
     lateinit var expireAt: OffsetDateTime
