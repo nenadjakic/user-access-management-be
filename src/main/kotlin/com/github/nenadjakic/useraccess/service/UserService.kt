@@ -63,7 +63,7 @@ class UserService(
         return savedUser
     }
 
-    open fun verifyEmail(token: UUID) {
+    fun verifyEmail(token: UUID) {
         val verificationToken = verificationTokenRepository.findById(token).getOrNull() ?: throw GeneralException("Confirmation url is incorrect.")
 
         if (verificationToken.expireAt.isBefore(OffsetDateTime.now())) {
@@ -77,7 +77,7 @@ class UserService(
         }
     }
 
-    open fun changePassword(
+    fun changePassword(
         username: String,
         currentPassword: String,
         newPassword: String
@@ -93,7 +93,7 @@ class UserService(
         userRepository.save(user)
     }
 
-    open fun forgotPassword(request: ForgotPasswordRequest) {
+    fun forgotPassword(request: ForgotPasswordRequest) {
         val user = userRepository.findByUsername(request.username) ?: throw EntityExistsException("User not found")
 
         val passwordResetToken = PasswordResetToken(user)
@@ -122,7 +122,7 @@ class UserService(
         }
     }
 
-    open fun resetPassword(request: ResetPasswordRequest) {
+    fun resetPassword(request: ResetPasswordRequest) {
         val passwordResetToken = passwordResetTokenRepository.findById(UUID.fromString(request.token))
             .orElseThrow { RuntimeException("Invalid or expired token") }
 
@@ -135,35 +135,34 @@ class UserService(
         userRepository.save(user)
     }
 
-    open fun getAllUsers(pageable: Pageable): Page<User> =
+    fun getAllUsers(pageable: Pageable): Page<User> =
         userRepository.findAll(pageable)
 
+    fun getById(id: UUID): User = userRepository.findById(id).orElseThrow { throw GeneralException("User not found") }
 
-    open fun getById(id: UUID): User = userRepository.findById(id).orElseThrow { throw GeneralException("User not found") }
-
-    open fun unlockUser(id: UUID) =
+    fun unlockUser(id: UUID): User =
         userRepository.findById(id)
             .orElseThrow { throw GeneralException("User not found") }
             .apply { locked = false }
             .let { userRepository.save(it) }
 
-    open fun disableUser(id: UUID) =
+    fun disableUser(id: UUID): User =
         userRepository.findById(id)
             .orElseThrow { throw GeneralException("User not found") }
             .apply { enabled = false }
             .let { userRepository.save(it) }
 
-    open fun addRole(id: UUID, role_id: UUID) {
+    fun addRole(id: UUID, roleId: UUID) {
         userRepository.findById(id)
             .orElseThrow { throw GeneralException("User not found") }
-            .apply { addRole(roleRepository.getReferenceById(role_id)) }
+            .apply { addRole(roleRepository.getReferenceById(roleId)) }
             .let { userRepository.save(it) }
     }
 
-    open fun removeRole(id: UUID, role_id: UUID) {
+    fun removeRole(id: UUID, roleId: UUID) {
         userRepository.findById(id)
             .orElseThrow { throw GeneralException("User not found") }
-            .apply { removeRoleById(role_id) }
+            .apply { removeRoleById(roleId) }
             .let { userRepository.save(it) }
     }
 }

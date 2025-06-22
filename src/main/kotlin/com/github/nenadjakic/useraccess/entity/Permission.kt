@@ -1,7 +1,6 @@
 package com.github.nenadjakic.useraccess.entity
 
 import jakarta.persistence.*
-import org.hibernate.annotations.Fetch
 import java.util.UUID
 
 @Entity

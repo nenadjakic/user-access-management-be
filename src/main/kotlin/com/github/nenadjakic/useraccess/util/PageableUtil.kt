@@ -8,7 +8,7 @@ fun parseSortOrders(sortParams: List<String>): List<Sort.Order> {
         if (parts.size == 2) {
             Sort.Order(Sort.Direction.fromString(parts[1]), parts[0])
         } else {
-            Sort.Order(Sort.Direction.ASC, parts[0]) // Default ASC ako nije definisano
+            Sort.Order(Sort.Direction.ASC, parts[0])
         }
     }
 }

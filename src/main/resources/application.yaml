@@ -2,6 +2,7 @@ user-access-management:
   mail-mq:
     queue-name: mail-queue
   jwt:
+    issuer: user-access-management
     valid-minutes: 60
   clients:
     service-y:

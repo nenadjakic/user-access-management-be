@@ -1,7 +1,7 @@
 package com.github.nenadjakic.useraccess.service
 
 import com.github.nenadjakic.useraccess.config.UserAccessManagementProperties
-import com.github.nenadjakic.useraccess.exception.GeneralException
+import com.github.nenadjakic.useraccess.entity.Client
 import com.github.nenadjakic.useraccess.security.model.LocalUserDetails
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
@@ -16,16 +16,19 @@ import java.security.spec.X509EncodedKeySpec
 import java.time.OffsetDateTime
 import java.util.*
 import java.util.stream.Collectors
-import javax.crypto.SecretKey
 
 /**
  * Service class for handling JWT tokens.
  */
 @Service
-open class JwtService(
+class JwtService(
+    private val clientService: ClientService,
     private val userAccessManagementProperties: UserAccessManagementProperties
 ) {
     private val accessTokenValidMinutes = userAccessManagementProperties.jwt.validMinutes
+    private val clients: Map<String, Client> by lazy {
+        clientService.findAll().associateBy { it.name }
+    }
 
     private fun loadPrivateKey(path: String): PrivateKey {
         val keyBytes = Files.readAllBytes(File(path).toPath())
@@ -39,15 +42,14 @@ open class JwtService(
         return KeyFactory.getInstance("RSA").generatePublic(spec)
     }
 
-    open fun createToken(user: LocalUserDetails, clientId: String): String {
+    fun createToken(user: LocalUserDetails, clientId: String): String {
         return createToken(user, clientId, mutableMapOf())
     }
 
-    open fun createToken(user: LocalUserDetails, clientId: String, claims: MutableMap<String, Any>): String {
-        val clientConfig = userAccessManagementProperties.clients[clientId]
-        if (clientConfig == null) {
-            throw GeneralException("Incorrect client id configuration.")
-        }
+    fun createToken(user: LocalUserDetails, clientId: String, claims: MutableMap<String, Any>): String {
+        val client = clients[clientId] ?: throw IllegalArgumentException("Client not found")
+
+        val privateKey = loadPrivateKey(client.privateKeyPath)
 
         val now = OffsetDateTime.now()
         val created = Date(now.toEpochSecond() * 1000)
@@ -56,6 +58,7 @@ open class JwtService(
         val roles = user.authorities.stream().map { it.authority } .collect(Collectors.toList())
         claims["roles"] = roles
         claims["aud"] = clientId
+        claims["iss"] = userAccessManagementProperties.jwt.issuer
 
         return Jwts
             .builder()
@@ -63,7 +66,7 @@ open class JwtService(
             .subject(user.username)
             .issuedAt(created)
             .expiration(expireAt)
-            .signWith(loadPrivateKey(clientConfig.privateKeyPath))
+            .signWith(privateKey)
             .compact()
     }
 
@@ -74,14 +77,14 @@ open class JwtService(
      * @return An instance of Claims containing all extracted claims from the token.
      * @throws io.jsonwebtoken.JwtException if there is an error while extracting claims from the token.
      */
-    open fun extractAllClaims(token: String): Claims {
+    fun extractAllClaims(token: String): Claims {
         val clientIds = extractAud(token)
         if (clientIds.isNullOrEmpty()) {
             throw IllegalArgumentException()
         }
 
-
-        val publicKey = loadPublicKey(clientIds.stream().findFirst().get())
+        val client = clients[clientIds.firstOrNull()] ?: throw IllegalArgumentException("Client not found")
+        val publicKey = loadPublicKey(client.publicKeyPath)
 
         return Jwts
             .parser()
@@ -139,7 +142,7 @@ open class JwtService(
      * @return true if the token is valid, false otherwise.
      * @throws io.jsonwebtoken.JwtException if there is an error while checking the token validity.
      */
-    open fun isValid(token: String, expectedClientId: String): Boolean {
+    fun isValid(token: String, expectedClientId: String): Boolean {
         try {
             val claims = extractAllClaims(token)
 

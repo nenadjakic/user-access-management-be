@@ -1,7 +1,6 @@
 package com.github.nenadjakic.useraccess.validation
 
 import com.github.nenadjakic.useraccess.dto.ConfirmPassword
-import com.github.nenadjakic.useraccess.dto.PasswordChangeRequest
 import jakarta.validation.ConstraintValidator
 import jakarta.validation.ConstraintValidatorContext
 
