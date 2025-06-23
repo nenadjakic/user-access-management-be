@@ -4,6 +4,7 @@ import com.github.nenadjakic.useraccess.dto.*
 import com.github.nenadjakic.useraccess.security.service.AuthService
 import com.github.nenadjakic.useraccess.service.UserService
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
@@ -34,7 +35,7 @@ class AuthController(
      *         appropriate error response.
      */
     @Operation(
-        operationId = "authRegisterUser",
+        operationId = "registerUser",
         summary = "Register a new user.",
         description = "Creates a new user account based on the provided registration request.",
         responses = [
@@ -59,7 +60,7 @@ class AuthController(
      *         otherwise returns an appropriate error response.
      */
     @Operation(
-        operationId = "authVerifyEmail",
+        operationId = "verifyEmail",
         summary = "Confirm email.",
         description = "Confirms the user's email address based on the provided confirmation token.",
         responses = [
@@ -67,7 +68,14 @@ class AuthController(
         ]
     )
     @GetMapping("/verify-email")
-    fun verifyEmail(@RequestParam(name = "token") token: String): ResponseEntity<Void> {
+    fun verifyEmail(
+        @Parameter(
+            description = "Verification token sent to the user's email.",
+            example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVC",
+            required = true
+        )
+        @RequestParam(name = "token") token: String
+    ): ResponseEntity<Void> {
         authService.verifyEmail(token)
         return ResponseEntity.ok().build()
     }

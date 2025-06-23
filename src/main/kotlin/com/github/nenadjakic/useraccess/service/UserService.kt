@@ -35,9 +35,9 @@ class UserService(
 ) {
     private val logger = LoggerFactory.getLogger(UserService::class.java)
 
-    fun findByEmail(email: String): User? = userRepository.findByEmail(email)
-
-    fun findByUsername(username: String): User? = findByEmail(username)
+    fun findByUsernameAndClientName(username: String, clientName: String): User? {
+        return userRepository.findByUsernameAndClientName(username, clientName)
+    }
 
     fun getAllUsers(pageable: Pageable): Page<User> =
         userRepository.findAll(pageable)
@@ -68,9 +68,5 @@ class UserService(
             .orElseThrow { throw GeneralException("User not found") }
             .apply { removeRoleById(roleId) }
             .let { userRepository.save(it) }
-    }
-
-    fun findByUsernameAndClientName(username: String, clientName: String): User? {
-        return userRepository.findByUsernameAndClientName(username, clientName)
     }
 }
