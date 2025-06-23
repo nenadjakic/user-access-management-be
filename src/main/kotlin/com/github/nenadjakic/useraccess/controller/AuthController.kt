@@ -1,7 +1,6 @@
 package com.github.nenadjakic.useraccess.controller
 
 import com.github.nenadjakic.useraccess.dto.*
-import com.github.nenadjakic.useraccess.entity.User
 import com.github.nenadjakic.useraccess.security.model.LocalUserDetails
 import com.github.nenadjakic.useraccess.service.JwtService
 import com.github.nenadjakic.useraccess.service.RefreshTokenService
@@ -11,7 +10,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import org.modelmapper.ModelMapper
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.authentication.AuthenticationManager
@@ -19,14 +17,12 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
-import java.util.UUID
 
 @Tag(name = "Authentication controller", description = "API endpoints for user authentication.")
 @RestController
 @RequestMapping("/auth")
 @Validated
 class AuthController(
-    private val modelMapper: ModelMapper,
     private val userService: UserService,
     private val refreshTokenService: RefreshTokenService,
     private val authenticationManager: AuthenticationManager,
@@ -58,8 +54,7 @@ class AuthController(
     )
     @PostMapping("/register")
     fun register(@Valid @RequestBody registerRequest: RegisterRequest): ResponseEntity<Void> {
-        val user = modelMapper.map(registerRequest, User::class.java)
-        userService.create(user)
+        userService.create(registerRequest)
         return ResponseEntity.status(HttpStatus.CREATED).build()
     }
 
@@ -85,7 +80,7 @@ class AuthController(
         ]
     )
     @GetMapping("/verify-email")
-    fun verifyEmail(@RequestParam(name = "token") token: UUID): ResponseEntity<Void> {
+    fun verifyEmail(@RequestParam(name = "token") token: String): ResponseEntity<Void> {
         userService.verifyEmail(token)
         return ResponseEntity.ok().build()
     }
@@ -118,13 +113,13 @@ class AuthController(
     ): ResponseEntity<TokenResponse> {
         if (signInRequest.grantType == SignInRequest.GrantType.PASSWORD) {
             val usernamePassword =
-                UsernamePasswordAuthenticationToken(signInRequest.username, signInRequest.passwordOrRefreshToken)
+                UsernamePasswordAuthenticationToken(signInRequest.clientId + "|" + signInRequest.username, signInRequest.passwordOrRefreshToken)
             val authUser: Authentication? = authenticationManager.authenticate(usernamePassword)
 
             return ResponseEntity.ok(createTokenResponse(authUser?.principal as LocalUserDetails, signInRequest.clientId))
         } else if (signInRequest.grantType == SignInRequest.GrantType.REFRESH_TOKEN) {
             val refreshTokenEntity =
-                refreshTokenService.findByUsernameAndToken(signInRequest.username, signInRequest.passwordOrRefreshToken)
+                refreshTokenService.findByUsernameAndToken(signInRequest.clientId, signInRequest.username, signInRequest.passwordOrRefreshToken)
             return ResponseEntity.ok(createTokenResponse(LocalUserDetails(refreshTokenEntity.user), signInRequest.clientId))
         }
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build()

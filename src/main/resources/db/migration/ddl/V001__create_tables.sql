@@ -17,11 +17,12 @@ CREATE TABLE "security".users (
 	email_confirmed bool NOT NULL,
 	"locked" bool NOT NULL,
 	enabled bool NOT NULL,
+	client_id uuid NOT NULL,
 	created_at timestamptz(6) NOT NULL,
     last_modified_at timestamptz(6) NULL,
     CONSTRAINT pk_security_users PRIMARY KEY (id),
-	CONSTRAINT uq_security_users_email UNIQUE (email),
-	CONSTRAINT uq_security_users_username UNIQUE (username),
+	CONSTRAINT uq_security_users_email UNIQUE (email, client_id),
+	CONSTRAINT uq_security_users_username UNIQUE (username, client_id),
 	CONSTRAINT ch_security_users_provider CHECK (((provider)::text = ANY ((ARRAY['LOCAL'::character varying, 'GOOGLE'::character varying])::text[])))
 );
 

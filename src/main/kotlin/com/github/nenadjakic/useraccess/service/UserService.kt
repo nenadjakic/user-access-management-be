@@ -3,16 +3,22 @@ package com.github.nenadjakic.useraccess.service
 import com.github.nenadjakic.useraccess.config.UserAccessManagementProperties
 import com.github.nenadjakic.useraccess.dto.ForgotPasswordRequest
 import com.github.nenadjakic.useraccess.dto.MailRequest
+import com.github.nenadjakic.useraccess.dto.RegisterRequest
 import com.github.nenadjakic.useraccess.dto.ResetPasswordRequest
 import com.github.nenadjakic.useraccess.entity.PasswordResetToken
 import com.github.nenadjakic.useraccess.entity.User
 import com.github.nenadjakic.useraccess.entity.VerificationToken
 import com.github.nenadjakic.useraccess.exception.EntityExistsException
 import com.github.nenadjakic.useraccess.exception.GeneralException
+import com.github.nenadjakic.useraccess.extension.toUser
+import com.github.nenadjakic.useraccess.repository.ClientRepository
 import com.github.nenadjakic.useraccess.repository.PasswordResetTokenRepository
 import com.github.nenadjakic.useraccess.repository.RoleRepository
 import com.github.nenadjakic.useraccess.repository.UserRepository
 import com.github.nenadjakic.useraccess.repository.VerificationTokenRepository
+import jakarta.persistence.EntityNotFoundException
+import jakarta.transaction.Transactional
+import org.modelmapper.ModelMapper
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.data.domain.Page
@@ -25,20 +31,24 @@ import kotlin.jvm.optionals.getOrNull
 
 @Service
 class UserService(
+    private val modelMapper: ModelMapper,
     private val userRepository: UserRepository,
     private val roleRepository: RoleRepository,
     private val verificationTokenRepository: VerificationTokenRepository,
     private val passwordResetTokenRepository: PasswordResetTokenRepository,
     private val rabbitTemplate: RabbitTemplate,
     private val userAccessManagementProperties: UserAccessManagementProperties,
-    private val passwordEncoder: PasswordEncoder
+    private val passwordEncoder: PasswordEncoder,
+    private val clientRepository: ClientRepository
 ) {
     private val logger = LoggerFactory.getLogger(UserService::class.java)
     fun findByEmail(email: String): User? = userRepository.findByEmail(email)
 
     fun findByUsername(username: String): User? = findByEmail(username)
 
-    fun create(user: User): User {
+    @Transactional
+    fun create(registerRequest: RegisterRequest): UUID {
+        val user = registerRequest.toUser(passwordEncoder, clientRepository)
         if (userRepository.existsByEmail(user.email)) {
             throw EntityExistsException("Username already exists.")
         }
@@ -60,11 +70,11 @@ class UserService(
             logger.error("Failed to send message to RabbitMQ", it)
         }
 
-        return savedUser
+        return savedUser.id!!
     }
 
-    fun verifyEmail(token: UUID) {
-        val verificationToken = verificationTokenRepository.findById(token).getOrNull() ?: throw GeneralException("Confirmation url is incorrect.")
+    fun verifyEmail(token: String) {
+        val verificationToken = verificationTokenRepository.findByToken(token).getOrNull() ?: throw GeneralException("Confirmation url is incorrect.")
 
         if (verificationToken.expireAt.isBefore(OffsetDateTime.now())) {
             throw GeneralException("Verification url was expired.")
@@ -164,5 +174,9 @@ class UserService(
             .orElseThrow { throw GeneralException("User not found") }
             .apply { removeRoleById(roleId) }
             .let { userRepository.save(it) }
+    }
+
+    fun findByUsernameAndClientName(username: String, clientName: String): User? {
+        return userRepository.findByUsernameAndClientName(username, clientName)
     }
 }

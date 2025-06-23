@@ -7,6 +7,9 @@ import jakarta.validation.constraints.NotEmpty
 @PasswordMatches
 class RegisterRequest: ConfirmPassword {
 
+    @NotEmpty
+    lateinit var clientId: String
+
     @Email
     @NotEmpty
     lateinit var email: String

@@ -12,9 +12,13 @@ class LocalUserDetailsService(
     private val userService: UserService
 ) : UserDetailsService {
     override fun loadUserByUsername(username: String?): UserDetails {
-        if (username == null) {
+        if (username == null || !username.contains("|")) {
             throw UsernameNotFoundException("User not found.")
         }
-        return LocalUserDetails(userService.findByUsername(username) ?: throw UsernameNotFoundException("User not found."))
+        val (clientName, realUsername) = username.split("|", limit = 2)
+
+        val user = userService.findByUsernameAndClientName(realUsername, clientName)
+            ?: throw UsernameNotFoundException("User not found.")
+        return LocalUserDetails(user)
     }
 }

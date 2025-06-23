@@ -12,8 +12,8 @@ class RefreshTokenService(
     private val refreshTokenRepository: RefreshTokenRepository
 ) {
 
-    fun findByUsernameAndToken(username: String, token: String): RefreshToken {
-        return refreshTokenRepository.findByUserUsernameAndTokenAndExpireAtGreaterThanEqual(username, token, OffsetDateTime.now())
+    fun findByUsernameAndToken(clientId: String, username: String, token: String): RefreshToken {
+        return refreshTokenRepository.findByUserClientNameAndUserUsernameAndTokenAndExpireAtGreaterThanEqual(clientId,username, token, OffsetDateTime.now())
             ?: throw RuntimeException("Invalid username")
     }
 

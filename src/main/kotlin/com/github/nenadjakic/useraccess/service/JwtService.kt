@@ -31,7 +31,12 @@ class JwtService(
     }
 
     private fun loadPrivateKey(path: String): PrivateKey {
-        val keyBytes = Files.readAllBytes(File(path).toPath())
+        val pem = File(path).readText()
+            .replace("-----BEGIN PRIVATE KEY-----", "")
+            .replace("-----END PRIVATE KEY-----", "")
+            .replace("\\s".toRegex(), "")
+
+        val keyBytes = Base64.getDecoder().decode(pem)
         val spec = PKCS8EncodedKeySpec(keyBytes)
         return KeyFactory.getInstance("RSA").generatePrivate(spec)
     }

@@ -8,5 +8,5 @@ import java.time.OffsetDateTime
 interface RefreshTokenRepository : JpaRepository<RefreshToken, Long> {
 
     @EntityGraph(attributePaths = ["user"])
-    fun findByUserUsernameAndTokenAndExpireAtGreaterThanEqual(username: String, token: String, now: OffsetDateTime): RefreshToken?
+    fun findByUserClientNameAndUserUsernameAndTokenAndExpireAtGreaterThanEqual(clientId: String,username: String, token: String, now: OffsetDateTime): RefreshToken?
 }
