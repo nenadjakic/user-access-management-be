@@ -1,5 +1,7 @@
 package com.github.nenadjakic.useraccess.dto
 
+import java.io.Serializable
+
 data class MailRequest(
     val to: Collection<String>,
     val cc: Collection<String>? = null,
@@ -7,4 +9,4 @@ data class MailRequest(
     val subject: String,
     val body: String,
     val isHtml: Boolean = false
-)
+) : Serializable

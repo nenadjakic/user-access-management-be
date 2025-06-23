@@ -113,14 +113,31 @@ class AuthController(
     ): ResponseEntity<TokenResponse> {
         if (signInRequest.grantType == SignInRequest.GrantType.PASSWORD) {
             val usernamePassword =
-                UsernamePasswordAuthenticationToken(signInRequest.clientId + "|" + signInRequest.username, signInRequest.passwordOrRefreshToken)
+                UsernamePasswordAuthenticationToken(
+                    signInRequest.clientId + "|" + signInRequest.username,
+                    signInRequest.passwordOrRefreshToken
+                )
             val authUser: Authentication? = authenticationManager.authenticate(usernamePassword)
 
-            return ResponseEntity.ok(createTokenResponse(authUser?.principal as LocalUserDetails, signInRequest.clientId))
+            return ResponseEntity.ok(
+                createTokenResponse(
+                    authUser?.principal as LocalUserDetails,
+                    signInRequest.clientId
+                )
+            )
         } else if (signInRequest.grantType == SignInRequest.GrantType.REFRESH_TOKEN) {
             val refreshTokenEntity =
-                refreshTokenService.findByUsernameAndToken(signInRequest.clientId, signInRequest.username, signInRequest.passwordOrRefreshToken)
-            return ResponseEntity.ok(createTokenResponse(LocalUserDetails(refreshTokenEntity.user), signInRequest.clientId))
+                refreshTokenService.findByClientIdAndUsernameAndToken(
+                    signInRequest.clientId,
+                    signInRequest.username,
+                    signInRequest.passwordOrRefreshToken
+                )
+            return ResponseEntity.ok(
+                createTokenResponse(
+                    LocalUserDetails(refreshTokenEntity.user),
+                    signInRequest.clientId
+                )
+            )
         }
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
     }

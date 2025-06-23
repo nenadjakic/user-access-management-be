@@ -5,6 +5,8 @@ import com.github.nenadjakic.useraccess.entity.Client
 import com.github.nenadjakic.useraccess.security.model.LocalUserDetails
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
+import jakarta.annotation.PostConstruct
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.io.File
 import java.nio.file.Files
@@ -26,8 +28,18 @@ class JwtService(
     private val userAccessManagementProperties: UserAccessManagementProperties
 ) {
     private val accessTokenValidMinutes = userAccessManagementProperties.jwt.validMinutes
-    private val clients: Map<String, Client> by lazy {
-        clientService.findAll().associateBy { it.name }
+
+    @Volatile
+    private var clients: Map<String, Client> = emptyMap()
+
+    @PostConstruct
+    fun init() {
+        refreshClients()
+    }
+
+    @Scheduled(cron = "0 0 0 * * ?")
+    fun refreshClients() {
+        clients = clientService.findAll().associateBy { it.name }
     }
 
     private fun loadPrivateKey(path: String): PrivateKey {

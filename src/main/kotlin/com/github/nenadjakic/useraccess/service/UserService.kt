@@ -11,14 +11,8 @@ import com.github.nenadjakic.useraccess.entity.VerificationToken
 import com.github.nenadjakic.useraccess.exception.EntityExistsException
 import com.github.nenadjakic.useraccess.exception.GeneralException
 import com.github.nenadjakic.useraccess.extension.toUser
-import com.github.nenadjakic.useraccess.repository.ClientRepository
-import com.github.nenadjakic.useraccess.repository.PasswordResetTokenRepository
-import com.github.nenadjakic.useraccess.repository.RoleRepository
-import com.github.nenadjakic.useraccess.repository.UserRepository
-import com.github.nenadjakic.useraccess.repository.VerificationTokenRepository
-import jakarta.persistence.EntityNotFoundException
+import com.github.nenadjakic.useraccess.repository.*
 import jakarta.transaction.Transactional
-import org.modelmapper.ModelMapper
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.data.domain.Page
@@ -27,11 +21,9 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import java.time.OffsetDateTime
 import java.util.*
-import kotlin.jvm.optionals.getOrNull
 
 @Service
 class UserService(
-    private val modelMapper: ModelMapper,
     private val userRepository: UserRepository,
     private val roleRepository: RoleRepository,
     private val verificationTokenRepository: VerificationTokenRepository,
@@ -42,6 +34,7 @@ class UserService(
     private val clientRepository: ClientRepository
 ) {
     private val logger = LoggerFactory.getLogger(UserService::class.java)
+
     fun findByEmail(email: String): User? = userRepository.findByEmail(email)
 
     fun findByUsername(username: String): User? = findByEmail(username)
@@ -49,6 +42,7 @@ class UserService(
     @Transactional
     fun create(registerRequest: RegisterRequest): UUID {
         val user = registerRequest.toUser(passwordEncoder, clientRepository)
+
         if (userRepository.existsByEmail(user.email)) {
             throw EntityExistsException("Username already exists.")
         }
@@ -60,7 +54,7 @@ class UserService(
             to = listOf(user.email),
             subject = "Complete Registration!",
             body = "To confirm your account, please click here confirm your e-mail: " +
-                    "http://localhost:8080/auth/confirm-email?token=" + verificationToken.id,
+                    userAccessManagementProperties.verificationUrl.replace("{token}", verificationToken.token),
             isHtml = true
         )
 
@@ -73,19 +67,17 @@ class UserService(
         return savedUser.id!!
     }
 
-    fun verifyEmail(token: String) {
-        val verificationToken = verificationTokenRepository.findByToken(token).getOrNull() ?: throw GeneralException("Confirmation url is incorrect.")
-
-        if (verificationToken.expireAt.isBefore(OffsetDateTime.now())) {
-            throw GeneralException("Verification url was expired.")
-        }
-
-        verificationToken.user.apply {
-            enabled = true
-            emailConfirmed = true
-            userRepository.save(this)
-        }
-    }
+    fun verifyEmail(token: String): Unit =
+        (verificationTokenRepository
+            .findByToken(token)
+            .orElseThrow { GeneralException("Confirmation url is incorrect.") }
+            .takeIf { it.expireAt.isAfter(OffsetDateTime.now()) }
+            ?: throw GeneralException("Confirmation url is expired.")
+                ).user.let {
+                it.enabled = true
+                it.emailConfirmed = true
+                userRepository.save(it)
+            }
 
     fun changePassword(
         username: String,
