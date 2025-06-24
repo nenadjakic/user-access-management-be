@@ -1,5 +1,6 @@
 user-access-management:
   verification-url: http://localhost:8080/auth/confirm-email?token={token}
+  password-reset-url: http://localhost:8080/auth/reset-password?token={token}
   mail-mq:
     queue-name: mail-queue
   jwt:

@@ -1,6 +1,7 @@
 package com.github.nenadjakic.useraccess.security.service
 
 import com.github.nenadjakic.useraccess.config.UserAccessManagementProperties
+import com.github.nenadjakic.useraccess.dto.ChangePasswordRequest
 import com.github.nenadjakic.useraccess.dto.ForgotPasswordRequest
 import com.github.nenadjakic.useraccess.dto.MailRequest
 import com.github.nenadjakic.useraccess.dto.RegisterRequest
@@ -20,12 +21,10 @@ import com.github.nenadjakic.useraccess.repository.VerificationTokenRepository
 import com.github.nenadjakic.useraccess.security.model.LocalUserDetails
 import com.github.nenadjakic.useraccess.service.JwtService
 import com.github.nenadjakic.useraccess.service.RefreshTokenService
-import com.github.nenadjakic.useraccess.service.UserService
+import jakarta.persistence.EntityNotFoundException
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.core.RabbitTemplate
-import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
@@ -125,11 +124,11 @@ class AuthService(
 
     @Transactional
     fun forgotPassword(request: ForgotPasswordRequest) {
-        val user = userRepository.findByUsername(request.username) ?: throw EntityExistsException("User not found")
+        val user = userRepository.findByUsernameAndClientName(request.username, request.clientId)
+            ?: throw EntityNotFoundException("User not found")
 
-        val passwordResetToken = PasswordResetToken(user)
-        passwordResetTokenRepository.save(passwordResetToken)
-        val passwordResetLink = "http://localhost:8080/auth/reset-password?token=" + passwordResetToken.id
+        var passwordResetToken = passwordResetTokenRepository.save(PasswordResetToken(user))
+        val passwordResetLink = userAccessManagementProperties.passwordResetUrl.replace("{tokent}", passwordResetToken.token)
 
         val mailRequest = MailRequest(
             to = listOf(user.email),
@@ -154,18 +153,16 @@ class AuthService(
     }
 
     fun changePassword(
-        username: String,
-        currentPassword: String,
-        newPassword: String
+        changePasswordRequest: ChangePasswordRequest
     ) {
-        val user = userRepository.findByUsername(username)
-            ?: throw GeneralException("User not found")
+        val user = userRepository.findByUsernameAndClientName(changePasswordRequest.username, changePasswordRequest.clientId)
+            ?: throw EntityNotFoundException("User not found")
 
-        if (!passwordEncoder.matches(currentPassword, user.password)) {
-            throw GeneralException("Current password is incorrect")
+        if (!passwordEncoder.matches(changePasswordRequest.currentPassword, user.password)) {
+            throw IllegalArgumentException("Current password is incorrect")
         }
 
-        user.password = passwordEncoder.encode(newPassword)
+        user.password = passwordEncoder.encode(changePasswordRequest.password)
         userRepository.save(user)
     }
 

@@ -1,25 +1,15 @@
 package com.github.nenadjakic.useraccess.service
 
 import com.github.nenadjakic.useraccess.config.UserAccessManagementProperties
-import com.github.nenadjakic.useraccess.dto.ForgotPasswordRequest
-import com.github.nenadjakic.useraccess.dto.MailRequest
-import com.github.nenadjakic.useraccess.dto.RegisterRequest
-import com.github.nenadjakic.useraccess.dto.ResetPasswordRequest
-import com.github.nenadjakic.useraccess.entity.PasswordResetToken
 import com.github.nenadjakic.useraccess.entity.User
-import com.github.nenadjakic.useraccess.entity.VerificationToken
-import com.github.nenadjakic.useraccess.exception.EntityExistsException
 import com.github.nenadjakic.useraccess.exception.GeneralException
-import com.github.nenadjakic.useraccess.extension.toUser
 import com.github.nenadjakic.useraccess.repository.*
-import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
-import java.time.OffsetDateTime
 import java.util.*
 
 @Service

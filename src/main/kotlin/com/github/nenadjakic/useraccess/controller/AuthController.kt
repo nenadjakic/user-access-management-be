@@ -2,7 +2,6 @@ package com.github.nenadjakic.useraccess.controller
 
 import com.github.nenadjakic.useraccess.dto.*
 import com.github.nenadjakic.useraccess.security.service.AuthService
-import com.github.nenadjakic.useraccess.service.UserService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -168,6 +167,35 @@ class AuthController(
     @PostMapping("/reset-password")
     fun resetPassword(@RequestBody request: ResetPasswordRequest): ResponseEntity<Void> {
         authService.resetPassword(request)
+        return ResponseEntity.ok().build()
+    }
+
+    /**
+     * Changes the user's password.
+     *
+     * This endpoint allows a user to change their password by providing the current password
+     * and the new password. The user must be authenticated and provide valid credentials.
+     *
+     * @param clientId The unique identifier of the client.
+     * @param username The username of the user whose password is being changed.
+     * @param currentPassword The current password of the user.
+     * @param newPassword The new password to set for the user.
+     * @return ResponseEntity<Void> representing the HTTP response for the change password operation.
+     *         Returns ResponseEntity.ok() if the password change is successful,
+     *         otherwise returns an appropriate error response (e.g., 400 Bad Request if current password is incorrect).
+     */
+    @Operation(
+        operationId = "changePassword",
+        summary = "Change user password",
+        description = "Allows an authenticated user to change their password by providing the current password, a new password, and confirmation.",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Password successfully changed."),
+            ApiResponse(responseCode = "400", description = "Invalid request or password.")
+        ]
+    )
+    @PostMapping("/change-password")
+    fun changePassword(@Valid @RequestBody changePasswordRequest: ChangePasswordRequest): ResponseEntity<Void> {
+        authService.changePassword(changePasswordRequest)
         return ResponseEntity.ok().build()
     }
 }

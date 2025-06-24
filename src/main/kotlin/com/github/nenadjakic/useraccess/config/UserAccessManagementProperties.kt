@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component
 class UserAccessManagementProperties {
 
     lateinit var verificationUrl: String
+    lateinit var passwordResetUrl: String
     var mailMq: MailMqProperties = MailMqProperties()
     var jwt: JwtProperties = JwtProperties()
     var clients: Map<String, ClientConfig> = emptyMap()

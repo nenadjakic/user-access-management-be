@@ -16,13 +16,11 @@ import org.springframework.security.crypto.password.PasswordEncoder
 
 @SpringBootApplication
 @EnableJpaAuditing
-class Application(
-    private val clientRepository: ClientRepository
-) {
+class Application {
     @Bean
     fun modelMapper(): ModelMapper =
         ModelMapper().also {
-            it.addConverter(RegisterRequestToUserConverter(passwordEncoder(), clientRepository))
+
         }
 
     @Bean

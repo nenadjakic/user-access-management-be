@@ -5,7 +5,6 @@ import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.time.Instant
-import java.time.OffsetDateTime
 import java.util.UUID
 
 @Entity
@@ -65,7 +64,7 @@ class User : AbstractEntity<UUID>() {
             _roles.add(it)
         }
     }
-    fun removeRoleById(role_id: UUID) = _roles.removeIf { it.id == role_id }
+    fun removeRoleById(roleId: UUID) = _roles.removeIf { it.id == roleId }
 
     @ManyToOne
     @JoinColumn(name = "client_id", nullable = false)
