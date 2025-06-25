@@ -1,5 +1,6 @@
 package com.github.nenadjakic.useraccess.service
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.nenadjakic.useraccess.config.UserAccessManagementProperties
 import com.github.nenadjakic.useraccess.entity.Client
 import com.github.nenadjakic.useraccess.security.model.LocalUserDetails
@@ -25,7 +26,8 @@ import java.util.stream.Collectors
 @Service
 class JwtService(
     private val clientService: ClientService,
-    private val userAccessManagementProperties: UserAccessManagementProperties
+    private val userAccessManagementProperties: UserAccessManagementProperties,
+    private val objectMapper: ObjectMapper
 ) {
     private val accessTokenValidMinutes = userAccessManagementProperties.jwt.validMinutes
 
@@ -54,7 +56,12 @@ class JwtService(
     }
 
     private fun loadPublicKey(path: String): PublicKey {
-        val keyBytes = Files.readAllBytes(File(path).toPath())
+        val pem = File(path).readText()
+            .replace("-----BEGIN PUBLIC KEY-----", "")
+            .replace("-----END PUBLIC KEY-----", "")
+            .replace("\\s".toRegex(), "")
+
+        val keyBytes = Base64.getDecoder().decode(pem)
         val spec = X509EncodedKeySpec(keyBytes)
         return KeyFactory.getInstance("RSA").generatePublic(spec)
     }
@@ -95,12 +102,12 @@ class JwtService(
      * @throws io.jsonwebtoken.JwtException if there is an error while extracting claims from the token.
      */
     fun extractAllClaims(token: String): Claims {
-        val clientIds = extractAud(token)
+        val clientIds = extractAudWithoutSignature(token)
         if (clientIds.isNullOrEmpty()) {
             throw IllegalArgumentException()
         }
 
-        val client = clients[clientIds.firstOrNull()] ?: throw IllegalArgumentException("Client not found")
+        val client = clients[clientIds] ?: throw IllegalArgumentException("Client not found")
         val publicKey = loadPublicKey(client.publicKeyPath)
 
         return Jwts
@@ -140,6 +147,25 @@ class JwtService(
         return extractClaim(token) { x -> x?.audience }
     }
 
+    private fun extractAudWithoutSignature(token: String): String? {
+        val parts = token.split('.')
+        if (parts.size < 2) throw IllegalArgumentException("Invalid JWT token format")
+
+        val payloadB64 = parts[1]
+        val decodedBytes = Base64.getUrlDecoder().decode(payloadB64)
+        val payloadJson = String(decodedBytes)
+
+        val claimsMap: Map<String, Any> = objectMapper.readValue(payloadJson, Map::class.java) as Map<String, Any>
+
+        val audClaim = claimsMap["aud"] ?: return null
+
+        return when (audClaim) {
+            is String -> audClaim
+            is List<*> -> audClaim.firstOrNull() as? String
+            else -> null
+        }
+    }
+
     /**
      * Checks if the JWT token is expired.
      *
@@ -159,16 +185,12 @@ class JwtService(
      * @return true if the token is valid, false otherwise.
      * @throws io.jsonwebtoken.JwtException if there is an error while checking the token validity.
      */
-    fun isValid(token: String, expectedClientId: String): Boolean {
+    fun isValid(token: String): Boolean {
         try {
             val claims = extractAllClaims(token)
 
             val expireAt = claims.expiration
-            if (expireAt.before(Date())) {
-                return false
-            }
-
-            return expectedClientId == claims["aud"] as? String
+            return !expireAt.before(Date())
         } catch (ex: Exception) {
             return false
         }

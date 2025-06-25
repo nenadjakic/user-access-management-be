@@ -1,4 +1,4 @@
-package com.github.nenadjakic.useraccess.security
+package com.github.nenadjakic.useraccess.security.service
 
 import com.github.nenadjakic.useraccess.security.model.LocalUserDetails
 import com.github.nenadjakic.useraccess.service.UserService

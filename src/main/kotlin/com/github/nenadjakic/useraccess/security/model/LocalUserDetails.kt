@@ -14,6 +14,14 @@ class LocalUserDetails() : UserDetails {
     private var locked = false
     private var enabled = false
 
+    fun setUsername(value: String) {
+        username = value
+    }
+
+    fun addAuthority(authority: GrantedAuthority): Boolean {
+        return authorities.add(authority)
+    }
+
     constructor(user: User) : this() {
         id = user.id
         username = user.username
