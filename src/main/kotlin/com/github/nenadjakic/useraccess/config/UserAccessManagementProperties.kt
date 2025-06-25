@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component
 @ConfigurationProperties(prefix = "user-access-management")
 class UserAccessManagementProperties {
 
+    lateinit var verificationUrl: String
+    lateinit var passwordResetUrl: String
     var mailMq: MailMqProperties = MailMqProperties()
     var jwt: JwtProperties = JwtProperties()
     var clients: Map<String, ClientConfig> = emptyMap()
@@ -16,13 +18,11 @@ class UserAccessManagementProperties {
     }
 
     class JwtProperties {
-        lateinit var privateKeyPath: String
-        lateinit var publicKeyPath: String
+        lateinit var issuer: String
         var validMinutes: Long = 10
     }
 
     class ClientConfig {
         lateinit var clientId: String
-        lateinit var clientSecret: String
     }
 }

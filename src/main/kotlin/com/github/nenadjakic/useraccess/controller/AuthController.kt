@@ -1,22 +1,14 @@
 package com.github.nenadjakic.useraccess.controller
 
 import com.github.nenadjakic.useraccess.dto.*
-import com.github.nenadjakic.useraccess.entity.User
-import com.github.nenadjakic.useraccess.security.model.LocalUserDetails
-import com.github.nenadjakic.useraccess.service.JwtService
-import com.github.nenadjakic.useraccess.service.RefreshTokenService
-import com.github.nenadjakic.useraccess.service.UserService
+import com.github.nenadjakic.useraccess.security.service.AuthService
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
-import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import org.modelmapper.ModelMapper
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.security.authentication.AuthenticationManager
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
-import org.springframework.security.core.Authentication
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 
@@ -25,11 +17,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/auth")
 @Validated
 class AuthController(
-    private val modelMapper: ModelMapper,
-    private val userService: UserService,
-    private val refreshTokenService: RefreshTokenService,
-    private val authenticationManager: AuthenticationManager,
-    private val jwtService: JwtService
+    private val authService: AuthService
 ) {
 
     /**
@@ -46,19 +34,16 @@ class AuthController(
      *         appropriate error response.
      */
     @Operation(
-        operationId = "authRegisterUser",
+        operationId = "registerUser",
         summary = "Register a new user.",
-        description = "Creates a new user account based on the provided registration request."
-    )
-    @ApiResponses(
-        value = [
+        description = "Creates a new user account based on the provided registration request.",
+        responses = [
             ApiResponse(responseCode = "201", description = "User registered successfully.")
         ]
     )
     @PostMapping("/register")
     fun register(@Valid @RequestBody registerRequest: RegisterRequest): ResponseEntity<Void> {
-        val user = modelMapper.map(registerRequest, User::class.java)
-        userService.create(user)
+        authService.register(registerRequest)
         return ResponseEntity.status(HttpStatus.CREATED).build()
     }
 
@@ -74,18 +59,23 @@ class AuthController(
      *         otherwise returns an appropriate error response.
      */
     @Operation(
-        operationId = "authVerifyEmail",
+        operationId = "verifyEmail",
         summary = "Confirm email.",
-        description = "Confirms the user's email address based on the provided confirmation token."
-    )
-    @ApiResponses(
-        value = [
+        description = "Confirms the user's email address based on the provided confirmation token.",
+        responses = [
             ApiResponse(responseCode = "200", description = "Email confirmed successfully")
         ]
     )
     @GetMapping("/verify-email")
-    fun verifyEmail(@RequestParam(name = "token") token: String): ResponseEntity<Void> {
-        userService.verifyEmail(token)
+    fun verifyEmail(
+        @Parameter(
+            description = "Verification token sent to the user's email.",
+            example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVC",
+            required = true
+        )
+        @RequestParam(name = "token") token: String
+    ): ResponseEntity<Void> {
+        authService.verifyEmail(token)
         return ResponseEntity.ok().build()
     }
 
@@ -104,30 +94,16 @@ class AuthController(
     @Operation(
         operationId = "authSignInUser",
         summary = "Sign in user.",
-        description = "Signs in a user based on the provided credentials."
-    )
-    @ApiResponses(
-        value = [
+        description = "Signs in a user based on the provided credentials.",
+        responses = [
             ApiResponse(responseCode = "200", description = "User signed in successfully.")
         ]
     )
     @PostMapping("/signin")
     fun signIn(
         @Valid @RequestBody signInRequest: SignInRequest
-    ): ResponseEntity<TokenResponse> {
-        if (signInRequest.grantType == SignInRequest.GrantType.PASSWORD) {
-            val usernamePassword =
-                UsernamePasswordAuthenticationToken(signInRequest.username, signInRequest.passwordOrRefreshToken)
-            val authUser: Authentication? = authenticationManager.authenticate(usernamePassword)
-
-            return ResponseEntity.ok(createTokenResponse(authUser?.principal as LocalUserDetails))
-        } else if (signInRequest.grantType == SignInRequest.GrantType.REFRESH_TOKEN) {
-            val refreshTokenEntity =
-                refreshTokenService.findByUsernameAndToken(signInRequest.username, signInRequest.passwordOrRefreshToken)
-            return ResponseEntity.ok(createTokenResponse(LocalUserDetails(refreshTokenEntity.user)))
-        }
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
-    }
+    ): ResponseEntity<TokenResponse> =
+        ResponseEntity.ok(authService.authenticate(signInRequest))
 
     /**
      * Initiates a password reset request.
@@ -148,10 +124,8 @@ class AuthController(
         summary = "Request password reset",
         description = "Allows a user to request a password reset. If the provided email is registered, " +
                 "a password reset link will be sent to the user's email address. The link contains a " +
-                "reset token that must be used to reset the password."
-    )
-    @ApiResponses(
-        value = [
+                "reset token that must be used to reset the password.",
+        responses = [
             ApiResponse(
                 responseCode = "200",
                 description = "Password reset email sent (even if the email is not registered)."
@@ -161,7 +135,7 @@ class AuthController(
     )
     @PostMapping("/forgot-password")
     fun forgotPassword(@RequestBody request: ForgotPasswordRequest): ResponseEntity<Void> {
-        userService.forgotPassword(request)
+        authService.forgotPassword(request)
         return ResponseEntity.ok().build()
     }
 
@@ -185,23 +159,43 @@ class AuthController(
         summary = "Reset user password",
         description = "Allows a user to reset their password by providing a valid reset token " +
                 "and a new password. The reset token is sent via email when the user requests a password reset. " +
-                "If the token is valid, the user's password will be updated."
-    )
-    @ApiResponses(
-        value = [
+                "If the token is valid, the user's password will be updated.",
+        responses = [
             ApiResponse(responseCode = "200", description = "Password successfully reset.")
         ]
     )
     @PostMapping("/reset-password")
     fun resetPassword(@RequestBody request: ResetPasswordRequest): ResponseEntity<Void> {
-        userService.resetPassword(request)
+        authService.resetPassword(request)
         return ResponseEntity.ok().build()
     }
 
-
-    fun createTokenResponse(user: LocalUserDetails, clientId: String, clientSecret: String): TokenResponse {
-        val accessToken = jwtService.createToken(user, clientId, clientSecret)
-        val refreshToken = refreshTokenService.create(user.username)!!.token
-        return TokenResponse(accessToken, refreshToken)
+    /**
+     * Changes the user's password.
+     *
+     * This endpoint allows a user to change their password by providing the current password
+     * and the new password. The user must be authenticated and provide valid credentials.
+     *
+     * @param clientId The unique identifier of the client.
+     * @param username The username of the user whose password is being changed.
+     * @param currentPassword The current password of the user.
+     * @param newPassword The new password to set for the user.
+     * @return ResponseEntity<Void> representing the HTTP response for the change password operation.
+     *         Returns ResponseEntity.ok() if the password change is successful,
+     *         otherwise returns an appropriate error response (e.g., 400 Bad Request if current password is incorrect).
+     */
+    @Operation(
+        operationId = "changePassword",
+        summary = "Change user password",
+        description = "Allows an authenticated user to change their password by providing the current password, a new password, and confirmation.",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Password successfully changed."),
+            ApiResponse(responseCode = "400", description = "Invalid request or password.")
+        ]
+    )
+    @PostMapping("/change-password")
+    fun changePassword(@Valid @RequestBody changePasswordRequest: ChangePasswordRequest): ResponseEntity<Void> {
+        authService.changePassword(changePasswordRequest)
+        return ResponseEntity.ok().build()
     }
 }

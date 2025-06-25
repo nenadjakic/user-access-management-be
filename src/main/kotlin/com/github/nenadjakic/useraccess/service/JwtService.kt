@@ -1,14 +1,13 @@
 package com.github.nenadjakic.useraccess.service
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.nenadjakic.useraccess.config.UserAccessManagementProperties
-import com.github.nenadjakic.useraccess.exception.GeneralException
+import com.github.nenadjakic.useraccess.entity.Client
 import com.github.nenadjakic.useraccess.security.model.LocalUserDetails
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.SignatureAlgorithm
-import io.jsonwebtoken.io.Decoders
-import io.jsonwebtoken.security.Keys
-import org.springframework.beans.factory.annotation.Value
+import jakarta.annotation.PostConstruct
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.io.File
 import java.nio.file.Files
@@ -20,47 +19,70 @@ import java.security.spec.X509EncodedKeySpec
 import java.time.OffsetDateTime
 import java.util.*
 import java.util.stream.Collectors
-import javax.crypto.SecretKey
 
 /**
  * Service class for handling JWT tokens.
  */
 @Service
-open class JwtService(
-    private val userAccessManagementProperties: UserAccessManagementProperties
+class JwtService(
+    private val clientService: ClientService,
+    private val userAccessManagementProperties: UserAccessManagementProperties,
+    private val objectMapper: ObjectMapper
 ) {
-    private val privateKey: PrivateKey by lazy { loadPrivateKey(userAccessManagementProperties.jwt.privateKeyPath) }
-    private val publicKey: PublicKey by lazy { loadPublicKey(userAccessManagementProperties.jwt.publicKeyPath) }
     private val accessTokenValidMinutes = userAccessManagementProperties.jwt.validMinutes
 
+    @Volatile
+    private var clients: Map<String, Client> = emptyMap()
+
+    @PostConstruct
+    fun init() {
+        refreshClients()
+    }
+
+    @Scheduled(cron = "0 0 0 * * ?")
+    fun refreshClients() {
+        clients = clientService.findAll().associateBy { it.name }
+    }
+
     private fun loadPrivateKey(path: String): PrivateKey {
-        val keyBytes = Files.readAllBytes(File(path).toPath())
+        val pem = File(path).readText()
+            .replace("-----BEGIN PRIVATE KEY-----", "")
+            .replace("-----END PRIVATE KEY-----", "")
+            .replace("\\s".toRegex(), "")
+
+        val keyBytes = Base64.getDecoder().decode(pem)
         val spec = PKCS8EncodedKeySpec(keyBytes)
         return KeyFactory.getInstance("RSA").generatePrivate(spec)
     }
 
     private fun loadPublicKey(path: String): PublicKey {
-        val keyBytes = Files.readAllBytes(File(path).toPath())
+        val pem = File(path).readText()
+            .replace("-----BEGIN PUBLIC KEY-----", "")
+            .replace("-----END PUBLIC KEY-----", "")
+            .replace("\\s".toRegex(), "")
+
+        val keyBytes = Base64.getDecoder().decode(pem)
         val spec = X509EncodedKeySpec(keyBytes)
         return KeyFactory.getInstance("RSA").generatePublic(spec)
     }
 
-    open fun createToken(user: LocalUserDetails, clientId: String, clientSecret: String): String {
-        return createToken(user, clientId, clientSecret, mutableMapOf())
+    fun createToken(user: LocalUserDetails, clientId: String): String {
+        return createToken(user, clientId, mutableMapOf())
     }
 
-    open fun createToken(user: LocalUserDetails, clientId: String, clientSecret: String, claims: MutableMap<String, Any>): String {
-        val clientConfig = userAccessManagementProperties.clients[clientId]
-        if (clientConfig == null || clientConfig.clientSecret != clientSecret) {
-            throw GeneralException("Incorrect client id or/and secret.")
-        }
+    fun createToken(user: LocalUserDetails, clientId: String, claims: MutableMap<String, Any>): String {
+        val client = clients[clientId] ?: throw IllegalArgumentException("Client not found")
 
-        val created = Date(OffsetDateTime.now().toEpochSecond() * 1000)
-        val expireAt = Date((OffsetDateTime.now().toEpochSecond() + (accessTokenValidMinutes * 60)) * 1000)
+        val privateKey = loadPrivateKey(client.privateKeyPath)
+
+        val now = OffsetDateTime.now()
+        val created = Date(now.toEpochSecond() * 1000)
+        val expireAt = Date((now.toEpochSecond() + (accessTokenValidMinutes * 60)) * 1000)
 
         val roles = user.authorities.stream().map { it.authority } .collect(Collectors.toList())
         claims["roles"] = roles
         claims["aud"] = clientId
+        claims["iss"] = userAccessManagementProperties.jwt.issuer
 
         return Jwts
             .builder()
@@ -79,7 +101,15 @@ open class JwtService(
      * @return An instance of Claims containing all extracted claims from the token.
      * @throws io.jsonwebtoken.JwtException if there is an error while extracting claims from the token.
      */
-    open fun extractAllClaims(token: String): Claims {
+    fun extractAllClaims(token: String): Claims {
+        val clientIds = extractAudWithoutSignature(token)
+        if (clientIds.isNullOrEmpty()) {
+            throw IllegalArgumentException()
+        }
+
+        val client = clients[clientIds] ?: throw IllegalArgumentException("Client not found")
+        val publicKey = loadPublicKey(client.publicKeyPath)
+
         return Jwts
             .parser()
             .verifyWith(publicKey)
@@ -113,6 +143,29 @@ open class JwtService(
         return extractClaim(token) { x -> x?.subject }
     }
 
+    private fun extractAud(token: String): Set<String>? {
+        return extractClaim(token) { x -> x?.audience }
+    }
+
+    private fun extractAudWithoutSignature(token: String): String? {
+        val parts = token.split('.')
+        if (parts.size < 2) throw IllegalArgumentException("Invalid JWT token format")
+
+        val payloadB64 = parts[1]
+        val decodedBytes = Base64.getUrlDecoder().decode(payloadB64)
+        val payloadJson = String(decodedBytes)
+
+        val claimsMap: Map<String, Any> = objectMapper.readValue(payloadJson, Map::class.java) as Map<String, Any>
+
+        val audClaim = claimsMap["aud"] ?: return null
+
+        return when (audClaim) {
+            is String -> audClaim
+            is List<*> -> audClaim.firstOrNull() as? String
+            else -> null
+        }
+    }
+
     /**
      * Checks if the JWT token is expired.
      *
@@ -132,16 +185,12 @@ open class JwtService(
      * @return true if the token is valid, false otherwise.
      * @throws io.jsonwebtoken.JwtException if there is an error while checking the token validity.
      */
-    open fun isValid(token: String, expectedClientId: String): Boolean {
+    fun isValid(token: String): Boolean {
         try {
             val claims = extractAllClaims(token)
 
             val expireAt = claims.expiration
-            if (expireAt.before(Date())) {
-                return false
-            }
-
-            return expectedClientId == claims["aud"] as? String
+            return !expireAt.before(Date())
         } catch (ex: Exception) {
             return false
         }

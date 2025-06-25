@@ -1,6 +1,10 @@
 package com.github.nenadjakic.useraccess.entity
 
 import jakarta.persistence.*
+import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.annotation.LastModifiedDate
+import org.springframework.data.jpa.domain.support.AuditingEntityListener
+import java.time.Instant
 import java.util.UUID
 
 @Entity
@@ -8,10 +12,11 @@ import java.util.UUID
     schema = "security",
     name = "users",
     uniqueConstraints = [
-        UniqueConstraint(name = "uq_security_users_username", columnNames = [ "username" ]),
-        UniqueConstraint(name = "uq_security_users_email", columnNames = [ "email" ])
+        UniqueConstraint(name = "uq_security_users_username", columnNames = [ "username", "client_id" ]),
+        UniqueConstraint(name = "uq_security_users_email", columnNames = [ "email", "client_id" ])
     ]
 )
+@EntityListeners(AuditingEntityListener::class)
 class User : AbstractEntity<UUID>() {
 
     @Id
@@ -59,5 +64,17 @@ class User : AbstractEntity<UUID>() {
             _roles.add(it)
         }
     }
-    fun removeRoleById(role_id: UUID) = _roles.removeIf { it.id == role_id }
+    fun removeRoleById(roleId: UUID) = _roles.removeIf { it.id == roleId }
+
+    @ManyToOne
+    @JoinColumn(name = "client_id", nullable = false)
+    lateinit var client: Client
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    lateinit var createdAt: Instant
+
+    @LastModifiedDate
+    @Column(name = "last_modified_at", nullable = true, insertable = false)
+    lateinit var modifiedAt: Instant
 }

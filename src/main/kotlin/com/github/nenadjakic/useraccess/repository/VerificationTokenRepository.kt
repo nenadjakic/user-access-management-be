@@ -8,5 +8,8 @@ import java.util.*
 interface VerificationTokenRepository : JpaRepository<VerificationToken, UUID> {
 
     @EntityGraph(attributePaths = ["user"])
-    fun findByToken(token: String): VerificationToken?
+    override fun findById(id: UUID): Optional<VerificationToken>
+
+    @EntityGraph(attributePaths = ["user"])
+    fun findByToken(token: String): Optional<VerificationToken>
 }

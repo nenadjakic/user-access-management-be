@@ -7,9 +7,9 @@ import java.util.*
 @Entity
 @Table(
     schema = "security",
-    name = "refresh_token",
+    name = "refresh_tokens",
     uniqueConstraints = [
-        UniqueConstraint(name = "uq_security_refresh_token_token", columnNames = [ "token" ])
+        UniqueConstraint(name = "uq_security_refresh_tokens_token", columnNames = [ "token" ])
     ])
 class RefreshToken() : AbstractEntity<UUID>() {
 
@@ -18,7 +18,7 @@ class RefreshToken() : AbstractEntity<UUID>() {
     @Column(name = "id", nullable = false, unique = true, length = 36)
     override var id: UUID? = null
 
-    @ManyToOne(cascade = [CascadeType.ALL])
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     lateinit var user: User
 

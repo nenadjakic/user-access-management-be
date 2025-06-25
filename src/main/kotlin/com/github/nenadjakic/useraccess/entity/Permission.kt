@@ -18,6 +18,9 @@ class Permission : AbstractNameEntity<UUID>() {
     @Column(name = "id", nullable = false, unique = true, length = 36)
     override var id: UUID? = null
 
+    @Column(name = "name", nullable = false, unique = true, length = 75)
+    override lateinit var name: String
+
     @ManyToMany(mappedBy = "_permissions")
     private val _roles: MutableList<Role> = mutableListOf()
     var roles: List<Role>

@@ -1,25 +1,39 @@
 user-access-management:
+  verification-url: http://localhost:8080/auth/confirm-email?token={token}
+  password-reset-url: http://localhost:8080/auth/reset-password?token={token}
   mail-mq:
     queue-name: mail-queue
   jwt:
-    private-key-path: src/main/resources/private_key.pem
-    public-key-path: src/main/resources/public_key.pem
+    issuer: user-access-management
     valid-minutes: 60
   clients:
     service-y:
       client-id: service-y
-      client-secret: secret123
+      private-key-path: src/main/resources/private_key.pem
+      public-key-path: src/main/resources/public_key.pem
     service-z:
       client-id: service-z
-      client-secret: secret456
+      private-key-path: src/main/resources/private_key.pem
+      public-key-path: src/main/resources/public_key.pem
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:2003/user-access-management-db
+    url: jdbc:postgresql://localhost:5432/user-access-management-db
     driverClassName: org.postgresql.Driver
     username: postgres
     password: postgres
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/ddl,classpath:db/migration/data
+    baselineOnMigrate: true
+  rabbitmq:
+    host: localhost
+    port: 2008
+    username: guest
+    password: guest
+    virtual-host: /
