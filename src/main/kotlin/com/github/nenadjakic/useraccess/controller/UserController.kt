@@ -1,9 +1,11 @@
 package com.github.nenadjakic.useraccess.controller
 
+import com.github.nenadjakic.useraccess.annotation.CurrentTenantId
 import com.github.nenadjakic.useraccess.dto.UserResponse
 import com.github.nenadjakic.useraccess.service.UserService
 import com.github.nenadjakic.useraccess.util.parseSortOrders
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -56,10 +58,11 @@ class UserController(
     fun getAllUsers(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "10") size: Int,
-        @RequestParam(defaultValue = "id,asc") sort: List<String>
+        @RequestParam(defaultValue = "id,asc") sort: List<String>,
+        @Parameter(hidden = true) @CurrentTenantId tenantId: UUID
     ): ResponseEntity<Page<UserResponse>> {
         val pageable: Pageable = PageRequest.of(page, size, Sort.by(parseSortOrders(sort)))
-        val users = userService.getAllUsers(pageable).map { user -> UserResponse.from(user) }
+        val users = userService.getAllUsers(tenantId, pageable).map { user -> UserResponse.from(user) }
         return ResponseEntity.ok(users)
     }
 

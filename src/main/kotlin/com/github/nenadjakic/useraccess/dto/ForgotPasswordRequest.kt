@@ -3,6 +3,8 @@ package com.github.nenadjakic.useraccess.dto
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotEmpty
+import jakarta.validation.constraints.NotNull
+import java.util.UUID
 
 @Schema(description = "Request body for initiating a password reset")
 data class ForgotPasswordRequest(
@@ -11,8 +13,8 @@ data class ForgotPasswordRequest(
         description = "Unique client identifier",
         example = "client-123"
     )
-    @param:NotEmpty(message = "Client ID must not be empty")
-    val clientId: String,
+    @param:NotNull(message = "Client ID must not be null")
+    val clientId: UUID? = null,
 
     @param:Schema(
         description = "Username or email address for password reset",

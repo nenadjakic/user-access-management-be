@@ -4,9 +4,10 @@ import com.github.nenadjakic.useraccess.entity.RefreshToken
 import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
 import java.time.OffsetDateTime
+import java.util.UUID
 
 interface RefreshTokenRepository : JpaRepository<RefreshToken, Long> {
 
     @EntityGraph(attributePaths = ["user"])
-    fun findByUserClientNameAndUserUsernameAndTokenAndExpireAtGreaterThanEqual(clientId: String,username: String, token: String, now: OffsetDateTime): RefreshToken?
+    fun findByUserTenantIdAndUserUsernameAndTokenAndExpireAtGreaterThanEqual(tenantId: UUID,username: String, token: String, now: OffsetDateTime): RefreshToken?
 }

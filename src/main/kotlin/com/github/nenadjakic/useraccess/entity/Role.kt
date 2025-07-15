@@ -8,7 +8,7 @@ import java.util.*
     schema = "security",
     name = "roles",
     uniqueConstraints = [
-        UniqueConstraint(name = "uq_security_roles_name", columnNames = ["name"])
+        UniqueConstraint(name = "uq_security_roles_name_tenand_id", columnNames = ["name, tenant_id"])
     ]
 )
 class Role : AbstractNameEntity<UUID>() {
@@ -41,4 +41,8 @@ class Role : AbstractNameEntity<UUID>() {
             _users.clear()
             _users.addAll(value)
         }
+
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    lateinit var tenant: Tenant
 }

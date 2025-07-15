@@ -2,13 +2,13 @@ package com.github.nenadjakic.useraccess.extension
 
 import com.github.nenadjakic.useraccess.dto.RegisterRequest
 import com.github.nenadjakic.useraccess.entity.User
-import com.github.nenadjakic.useraccess.repository.ClientRepository
+import com.github.nenadjakic.useraccess.repository.TenantRepository
 import jakarta.persistence.EntityNotFoundException
 import org.springframework.security.crypto.password.PasswordEncoder
 
 fun RegisterRequest.toUser(
     passwordEncoder: PasswordEncoder,
-    clientRepository: ClientRepository
+    tenantRepository: TenantRepository
 ): User {
     return User().also {
         it.enabled = false
@@ -16,6 +16,6 @@ fun RegisterRequest.toUser(
         it.username = this.email
         it.email = this.email
         it.password = passwordEncoder.encode(this.password)
-        it.client = clientRepository.findByName(this.clientId).orElseThrow { EntityNotFoundException("Client does not exists") }
+        it.tenant = tenantRepository.findById(this.clientId).orElseThrow { EntityNotFoundException("Tenant does not exists") }
     }
 }

@@ -1,24 +1,25 @@
-package com.github.nenadjakic.useraccess.config
+package com.github.nenadjakic.useraccess.controller
 
+import com.github.nenadjakic.useraccess.annotation.CurrentTenantId
 import com.github.nenadjakic.useraccess.security.filter.JwtAuthenticationFilter
-import io.jsonwebtoken.Claims
-import io.swagger.v3.oas.annotations.Operation
-import io.swagger.v3.oas.annotations.responses.ApiResponse
-import io.swagger.v3.oas.annotations.responses.ApiResponses
-import org.springframework.http.MediaType
+import io.swagger.v3.oas.annotations.Parameter
+import org.hibernate.annotations.TenantId
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.util.UUID
 
 @RestController
 @RequestMapping("/info")
 class InfoController {
     @GetMapping("/me")
-    fun me(): ResponseEntity<Any> {
+    fun me(
+        @Parameter(hidden = true)
+        @CurrentTenantId tenantId: UUID
+    ): ResponseEntity<Any> {
         val auth = SecurityContextHolder.getContext().authentication
         val userDetails = auth.principal as? UserDetails
         val details = auth.details as? JwtAuthenticationFilter.AuthenticationDetails
@@ -28,6 +29,7 @@ class InfoController {
 
         return ResponseEntity.ok(
             mapOf(
+                "tenantId" to tenantId,
                 "username" to userDetails?.username,
                 "aud" to claims?.audience,
                 "ip" to requestInfo?.remoteAddress,
@@ -36,5 +38,4 @@ class InfoController {
             )
         )
     }
-
 }

@@ -29,5 +29,6 @@ class PasswordResetToken() : AbstractEntity<UUID>() {
     constructor(user: User) : this() {
         this.user = user
         this.expireAt = OffsetDateTime.now().plusHours(12L)
+        this.token = UUID.randomUUID().toString().replace("-", "")
     }
 }

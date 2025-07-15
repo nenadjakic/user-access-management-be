@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.stereotype.Service
+import java.util.UUID
 
 @Service
 class LocalUserDetailsService(
@@ -15,10 +16,12 @@ class LocalUserDetailsService(
         if (username == null || !username.contains("|")) {
             throw UsernameNotFoundException("User not found.")
         }
-        val (clientName, realUsername) = username.split("|", limit = 2)
+        val (tenantIdAsString, realUsername) = username.split("|", limit = 2)
+        val tenantId = UUID.fromString(tenantIdAsString)
 
-        val user = userService.findByUsernameAndClientName(realUsername, clientName)
-            ?: throw UsernameNotFoundException("User not found.")
+        val user = userService.findByUsernameAndTenantId(realUsername, tenantId)
+            .orElseThrow { UsernameNotFoundException("User not found.") }
+
         return LocalUserDetails(user)
     }
 }

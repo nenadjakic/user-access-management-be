@@ -13,7 +13,7 @@ import com.github.nenadjakic.useraccess.entity.VerificationToken
 import com.github.nenadjakic.useraccess.exception.EntityExistsException
 import com.github.nenadjakic.useraccess.exception.GeneralException
 import com.github.nenadjakic.useraccess.extension.toUser
-import com.github.nenadjakic.useraccess.repository.ClientRepository
+import com.github.nenadjakic.useraccess.repository.TenantRepository
 import com.github.nenadjakic.useraccess.repository.PasswordResetTokenRepository
 import com.github.nenadjakic.useraccess.repository.RoleRepository
 import com.github.nenadjakic.useraccess.repository.UserRepository
@@ -45,7 +45,7 @@ class AuthService(
     private val rabbitTemplate: RabbitTemplate,
     private val userAccessManagementProperties: UserAccessManagementProperties,
     private val passwordEncoder: PasswordEncoder,
-    private val clientRepository: ClientRepository
+    private val tenantRepository: TenantRepository
 ) {
     private val logger = LoggerFactory.getLogger(AuthService::class.java)
 
@@ -54,39 +54,40 @@ class AuthService(
             SignInRequest.GrantType.PASSWORD -> {
                 val usernamePassword =
                     UsernamePasswordAuthenticationToken(
-                        signInRequest.clientId + "|" + signInRequest.username,
+                        signInRequest.clientId!!.toString() + "|" + signInRequest.username,
                         signInRequest.passwordOrRefreshToken
                     )
                 val authUser: Authentication? = authenticationManager.authenticate(usernamePassword)
 
                 createTokenResponse(
                     authUser?.principal as LocalUserDetails,
-                    signInRequest.clientId
+                    signInRequest.clientId!!
                 )
             }
             SignInRequest.GrantType.REFRESH_TOKEN -> {
                 val refreshTokenEntity =
-                    refreshTokenService.findByClientIdAndUsernameAndToken(
-                        signInRequest.clientId,
+                    refreshTokenService.findByTenantIdAndUsernameAndToken(
+                        signInRequest.clientId!!,
                         signInRequest.username,
                         signInRequest.passwordOrRefreshToken
                     )
                 createTokenResponse(
                     LocalUserDetails(refreshTokenEntity.user),
-                    signInRequest.clientId
+                    signInRequest.clientId!!
                 )
             }
-            else -> {
-                throw IllegalArgumentException("Invalid grant type")
+
+            null -> {
+             throw IllegalArgumentException("Grant type must not be null")
             }
         }
     }
 
     @Transactional
     fun register(registerRequest: RegisterRequest): UUID {
-        val user = registerRequest.toUser(passwordEncoder, clientRepository)
+        val user = registerRequest.toUser(passwordEncoder, tenantRepository)
 
-        if (userRepository.existsByEmail(user.email)) {
+        if (userRepository.existsByUsernameAndTenantId(user.email, user.tenant.id!!)) {
             throw EntityExistsException("Username already exists.")
         }
         val savedUser = userRepository.save(user)
@@ -124,8 +125,9 @@ class AuthService(
 
     @Transactional
     fun forgotPassword(request: ForgotPasswordRequest) {
-        val user = userRepository.findByUsernameAndClientName(request.username, request.clientId)
-            ?: throw EntityNotFoundException("User not found")
+        val user = userRepository
+            .findByUsernameAndTenantId(request.username, request.clientId!!)
+            .orElseThrow { EntityNotFoundException("User not found") }
 
         var passwordResetToken = passwordResetTokenRepository.save(PasswordResetToken(user))
         val passwordResetLink = userAccessManagementProperties.passwordResetUrl.replace("{tokent}", passwordResetToken.token)
@@ -155,8 +157,8 @@ class AuthService(
     fun changePassword(
         changePasswordRequest: ChangePasswordRequest
     ) {
-        val user = userRepository.findByUsernameAndClientName(changePasswordRequest.username, changePasswordRequest.clientId)
-            ?: throw EntityNotFoundException("User not found")
+        val user = userRepository.findByUsernameAndTenantId(changePasswordRequest.username, changePasswordRequest.clientId!!)
+            .orElseThrow { EntityNotFoundException("User not found") }
 
         if (!passwordEncoder.matches(changePasswordRequest.currentPassword, user.password)) {
             throw IllegalArgumentException("Current password is incorrect")
@@ -167,7 +169,7 @@ class AuthService(
     }
 
     fun resetPassword(request: ResetPasswordRequest) {
-        val passwordResetToken = passwordResetTokenRepository.findById(UUID.fromString(request.token))
+        val passwordResetToken = passwordResetTokenRepository.findByToken(request.token)
             .orElseThrow { RuntimeException("Invalid or expired token") }
 
         if (passwordResetToken.expireAt.isBefore(OffsetDateTime.now())) {
@@ -179,9 +181,9 @@ class AuthService(
         userRepository.save(user)
     }
 
-    private fun createTokenResponse(user: LocalUserDetails, clientId: String): TokenResponse {
-        val accessToken = jwtService.createToken(user, clientId)
-        val refreshToken = refreshTokenService.create(user.username)!!.token
+    private fun createTokenResponse(user: LocalUserDetails, tenantId: UUID): TokenResponse {
+        val accessToken = jwtService.createToken(user, tenantId.toString())
+        val refreshToken = refreshTokenService.create(tenantId, user.username)!!.token
         return TokenResponse(accessToken, refreshToken)
     }
 }

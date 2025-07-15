@@ -6,17 +6,29 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import java.util.UUID
 
-class PermissionService(private val permissionRepository: PermissionRepository) : CrudService<Permission, UUID> {
+class PermissionService(
+    private val permissionRepository: PermissionRepository
+) {
 
-    override fun findById(id: UUID): Permission? = permissionRepository.findById(id).orElse(null)
+    fun findById(id: UUID): Permission =
+        permissionRepository
+            .findById(id)
+            .orElseThrow {
+                IllegalArgumentException("Permission with id $id not found")
+            }
 
-    override fun find(pageable: Pageable): Page<Permission> = permissionRepository.findAll(pageable)
+    fun findAll(tenantId: UUID, pageable: Pageable): Page<Permission> =
+        permissionRepository.findAllByTenantId(tenantId, pageable)
 
-    override fun create(entity: Permission): Permission = permissionRepository.save(entity)
+    fun create(entity: Permission): Permission =
+        permissionRepository.save(entity)
 
-    override fun update(entity: Permission): Permission = permissionRepository.save(entity)
+    fun update(entity: Permission): Permission =
+        permissionRepository.save(entity)
 
-    override fun delete(entity: Permission) = permissionRepository.delete(entity)
+    fun delete(entity: Permission) =
+        permissionRepository.delete(entity)
 
-    override fun deleteById(id: UUID) = permissionRepository.deleteById(id)
+    fun deleteById(id: UUID) =
+        permissionRepository.deleteById(id)
 }
