@@ -1,16 +1,18 @@
 package com.github.nenadjakic.useraccess.repository
 
 import com.github.nenadjakic.useraccess.entity.User
+import org.hibernate.annotations.TenantId
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import java.util.Optional
 import java.util.UUID
 
 interface UserRepository : JpaRepository<User, UUID> {
-    fun findByEmail(email: String): User?
-    fun existsByEmail(email: String): Boolean
 
-    fun findByUsernameAndClientName(username: String, clientName: String): User?
-    fun existsByUsernameAndClientName(username: String, clientName: String): Boolean
+    fun findByUsernameAndTenantId(username: String, tenantId: UUID): Optional<User>
 
-    fun findByUsername(username: String): User?
-    fun existsByUsername(username: String): Boolean
+    fun existsByUsernameAndTenantId(username: String, tenantId: UUID): Boolean
+
+    fun findAllByTenantId(tenantId: UUID, pageable: Pageable): Page<User>
 }

@@ -6,6 +6,7 @@ import com.github.nenadjakic.useraccess.repository.UserRepository
 import jakarta.persistence.EntityNotFoundException
 import org.springframework.stereotype.Service
 import java.time.OffsetDateTime
+import java.util.UUID
 
 @Service
 class RefreshTokenService(
@@ -13,18 +14,18 @@ class RefreshTokenService(
     private val refreshTokenRepository: RefreshTokenRepository
 ) {
 
-    fun findByClientIdAndUsernameAndToken(clientId: String, username: String, token: String): RefreshToken =
-        refreshTokenRepository.findByUserClientNameAndUserUsernameAndTokenAndExpireAtGreaterThanEqual(
-            clientId,
+    fun findByTenantIdAndUsernameAndToken(tenantId: UUID, username: String, token: String): RefreshToken =
+        refreshTokenRepository.findByUserTenantIdAndUserUsernameAndTokenAndExpireAtGreaterThanEqual(
+            tenantId,
             username,
             token,
             OffsetDateTime.now()
         )
             ?: throw RuntimeException("Invalid username")
 
-    fun create(username: String): RefreshToken =
-        (userRepository.findByUsername(username)
-            ?: throw EntityNotFoundException("User not found"))
+    fun create(tenantId: UUID, username: String): RefreshToken =
+        (userRepository.findByUsernameAndTenantId(username, tenantId)
+            .orElseThrow { EntityNotFoundException("User not found") })
             .let {
                 refreshTokenRepository.save(RefreshToken(it))
             }

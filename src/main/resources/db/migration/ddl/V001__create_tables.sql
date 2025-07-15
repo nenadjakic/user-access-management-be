@@ -1,11 +1,11 @@
-CREATE TABLE "security".clients (
+CREATE TABLE "security".tenants (
 	id uuid NOT NULL,
-	"name" varchar(75) NOT NULL,
+	name varchar(75) NOT NULL,
 	private_key_path varchar(255) NOT NULL,
 	public_key_path varchar(255) NOT NULL,
 	is_active bool NOT NULL,
-	CONSTRAINT pk_security_clients PRIMARY KEY (id),
-	CONSTRAINT uq_security_clients_name UNIQUE (name)
+	CONSTRAINT pk_security_tenants PRIMARY KEY (id),
+	CONSTRAINT uq_security_tenants_name UNIQUE (name)
 );
 
 CREATE TABLE "security".users (
@@ -17,27 +17,32 @@ CREATE TABLE "security".users (
 	email_confirmed bool NOT NULL,
 	"locked" bool NOT NULL,
 	enabled bool NOT NULL,
-	client_id uuid NOT NULL,
+	tenant_id uuid NOT NULL,
 	created_at timestamptz(6) NOT NULL,
     last_modified_at timestamptz(6) NULL,
     CONSTRAINT pk_security_users PRIMARY KEY (id),
-	CONSTRAINT uq_security_users_email UNIQUE (email, client_id),
-	CONSTRAINT uq_security_users_username UNIQUE (username, client_id),
+    CONSTRAINT fk_security_users_security_tenants FOREIGN KEY (tenant_id) REFERENCES "security".tenants(id),
+	CONSTRAINT uq_security_users_email UNIQUE (email, tenant_id),
+	CONSTRAINT uq_security_users_username UNIQUE (username, tenant_id),
 	CONSTRAINT ch_security_users_provider CHECK (((provider)::text = ANY ((ARRAY['LOCAL'::character varying, 'GOOGLE'::character varying])::text[])))
 );
 
 CREATE TABLE "security".roles (
 	id uuid NOT NULL,
 	"name" varchar(75) NOT NULL,
+	tenant_id uuid NOT NULL,
 	CONSTRAINT pk_security_roles PRIMARY KEY (id),
-	CONSTRAINT uq_security_roles_name UNIQUE (name)
+	CONSTRAINT fk_security_roles_security_tenants FOREIGN KEY (tenant_id) REFERENCES "security".tenants(id),
+	CONSTRAINT uq_security_roles_name_tenant_id UNIQUE (name, tenant_id)
 );
 
 CREATE TABLE "security".permissions (
 	id uuid NOT NULL,
 	"name" varchar(75) NOT NULL,
+	tenant_id uuid NOT NULL,
 	CONSTRAINT pk_security_permissions PRIMARY KEY (id),
-	CONSTRAINT uq_security_permissions_name UNIQUE (name)
+	CONSTRAINT fk_security_permissions_security_tenants FOREIGN KEY (tenant_id) REFERENCES "security".tenants(id),
+	CONSTRAINT uq_security_permissions_name_tenant_id UNIQUE (name, tenant_id)
 );
 
 CREATE TABLE "security".role_permission (

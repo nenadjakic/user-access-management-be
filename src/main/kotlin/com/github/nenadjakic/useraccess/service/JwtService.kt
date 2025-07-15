@@ -2,7 +2,7 @@ package com.github.nenadjakic.useraccess.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.nenadjakic.useraccess.config.UserAccessManagementProperties
-import com.github.nenadjakic.useraccess.entity.Client
+import com.github.nenadjakic.useraccess.entity.Tenant
 import com.github.nenadjakic.useraccess.security.model.LocalUserDetails
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
@@ -10,7 +10,6 @@ import jakarta.annotation.PostConstruct
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.io.File
-import java.nio.file.Files
 import java.security.KeyFactory
 import java.security.PrivateKey
 import java.security.PublicKey
@@ -25,14 +24,14 @@ import java.util.stream.Collectors
  */
 @Service
 class JwtService(
-    private val clientService: ClientService,
+    private val tenantService: TenantService,
     private val userAccessManagementProperties: UserAccessManagementProperties,
     private val objectMapper: ObjectMapper
 ) {
     private val accessTokenValidMinutes = userAccessManagementProperties.jwt.validMinutes
 
     @Volatile
-    private var clients: Map<String, Client> = emptyMap()
+    private var clients: Map<UUID, Tenant> = emptyMap()
 
     @PostConstruct
     fun init() {
@@ -41,7 +40,7 @@ class JwtService(
 
     @Scheduled(cron = "0 0 0 * * ?")
     fun refreshClients() {
-        clients = clientService.findAll().associateBy { it.name }
+        clients = tenantService.findAll().associateBy { it.id!! }
     }
 
     private fun loadPrivateKey(path: String): PrivateKey {
@@ -71,7 +70,7 @@ class JwtService(
     }
 
     fun createToken(user: LocalUserDetails, clientId: String, claims: MutableMap<String, Any>): String {
-        val client = clients[clientId] ?: throw IllegalArgumentException("Client not found")
+        val client = clients[UUID.fromString(clientId)] ?: throw IllegalArgumentException("Client not found")
 
         val privateKey = loadPrivateKey(client.privateKeyPath)
 
@@ -107,7 +106,7 @@ class JwtService(
             throw IllegalArgumentException()
         }
 
-        val client = clients[clientIds] ?: throw IllegalArgumentException("Client not found")
+        val client = clients[UUID.fromString(clientIds)] ?: throw IllegalArgumentException("Client not found")
         val publicKey = loadPublicKey(client.publicKeyPath)
 
         return Jwts

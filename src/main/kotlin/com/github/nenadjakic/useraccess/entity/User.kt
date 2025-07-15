@@ -66,9 +66,9 @@ class User : AbstractEntity<UUID>() {
     }
     fun removeRoleById(roleId: UUID) = _roles.removeIf { it.id == roleId }
 
-    @ManyToOne
-    @JoinColumn(name = "client_id", nullable = false)
-    lateinit var client: Client
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    lateinit var tenant: Tenant
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

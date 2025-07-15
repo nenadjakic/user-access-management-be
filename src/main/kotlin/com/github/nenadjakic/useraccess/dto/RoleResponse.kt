@@ -7,12 +7,8 @@ data class RoleResponse(
     val id: UUID,
     val name: String
 ) {
-    companion object {
-        fun from(role: Role): RoleResponse =
-            RoleResponse(
-                role.id!!,
-                role.name
-            )
-    }
-
+    constructor(role: Role) : this(
+        id = role.id ?: UUID.randomUUID(),
+        name = role.name,
+    )
 }

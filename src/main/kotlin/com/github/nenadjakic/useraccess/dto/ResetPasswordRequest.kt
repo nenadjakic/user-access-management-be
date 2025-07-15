@@ -21,7 +21,6 @@ data class ResetPasswordRequest(
         example = "StrongP@ssw0rd"
     )
     @NotEmpty(message = "New password must not be empty")
-    @JsonProperty("newPassword")
     override var password: String,
 
     @Schema(

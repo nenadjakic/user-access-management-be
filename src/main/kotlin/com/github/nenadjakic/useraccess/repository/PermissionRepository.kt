@@ -1,7 +1,12 @@
 package com.github.nenadjakic.useraccess.repository
 
 import com.github.nenadjakic.useraccess.entity.Permission
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
-interface PermissionRepository : JpaRepository<Permission, UUID>
+interface PermissionRepository : JpaRepository<Permission, UUID> {
+
+    fun findAllByTenantId(tenantId: UUID, pageable: Pageable): Page<Permission>
+}

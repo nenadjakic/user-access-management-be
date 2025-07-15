@@ -3,6 +3,7 @@ package com.github.nenadjakic.useraccess.dto
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotEmpty
 import jakarta.validation.constraints.NotNull
+import java.util.UUID
 
 @Schema(description = "Request body for user sign-in")
 class SignInRequest {
@@ -12,8 +13,8 @@ class SignInRequest {
     }
 
     @Schema(description = "Unique client identifier", example = "client-123")
-    @NotEmpty(message = "Client ID must not be empty")
-    lateinit var clientId: String
+    @NotNull(message = "Client ID must not be empty")
+    var clientId: UUID? = null
 
     @Schema(description = "Username or email address", example = "user@example.com")
     @NotEmpty(message = "Username must not be empty")
@@ -25,5 +26,5 @@ class SignInRequest {
 
     @Schema(description = "Type of grant", example = "PASSWORD")
     @NotNull(message = "Grant type must not be null")
-    lateinit var grantType: GrantType
+    var grantType: GrantType? = null
 }

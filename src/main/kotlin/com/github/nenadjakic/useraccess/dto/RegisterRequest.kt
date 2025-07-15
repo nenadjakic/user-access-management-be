@@ -4,13 +4,15 @@ import com.github.nenadjakic.useraccess.validation.PasswordMatches
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotEmpty
+import jakarta.validation.constraints.NotNull
+import java.util.UUID
 
 @PasswordMatches(message = "Passwords do not match")
 class RegisterRequest: ConfirmPassword {
 
     @Schema(description = "Unique client identifier", example = "client-123")
-    @NotEmpty(message = "Client ID must not be empty")
-    lateinit var clientId: String
+    @NotNull(message = "Client ID must not null")
+    var clientId: UUID? = null
 
     @Schema(description = "User email address", example = "user@example.com")
     @Email(message = "Email should be valid")

@@ -11,11 +11,11 @@ import org.hibernate.annotations.SQLRestriction
 import java.util.UUID
 
 @Entity
-@Table( schema = "security", name = "clients", uniqueConstraints = [
-    UniqueConstraint(name = "uq_security_clients_name", columnNames = [ "name" ])
+@Table( schema = "security", name = "tenants", uniqueConstraints = [
+    UniqueConstraint(name = "uq_security_tenants_name", columnNames = [ "name" ])
 ])
 @SQLRestriction("is_active = true")
-class Client : AbstractNameEntity<UUID>() {
+class Tenant : AbstractEntity<UUID>() {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -23,7 +23,7 @@ class Client : AbstractNameEntity<UUID>() {
     override var id: UUID? = null
 
     @Column(name = "name", nullable = false, unique = true, length = 75)
-    override lateinit var name: String
+    lateinit var name: String
 
     @Column(name = "private_key_path", nullable = false, length = 255)
     lateinit var privateKeyPath: String
