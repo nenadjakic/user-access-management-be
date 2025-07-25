@@ -6,15 +6,13 @@ user-access-management:
   jwt:
     issuer: user-access-management
     valid-minutes: 60
-  clients:
-    service-y:
-      client-id: service-y
-      private-key-path: src/main/resources/private_key.pem
-      public-key-path: src/main/resources/public_key.pem
-    service-z:
-      client-id: service-z
-      private-key-path: src/main/resources/private_key.pem
-      public-key-path: src/main/resources/public_key.pem
+  security:
+    cors:
+      allowed-origins:
+        - http://localhost:4200
+
+server:
+  port: 8090
 
 spring:
   datasource:

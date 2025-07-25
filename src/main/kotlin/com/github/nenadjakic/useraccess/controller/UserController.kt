@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
@@ -54,7 +55,7 @@ class UserController(
             ApiResponse(responseCode = "403", description = "Access denied. Only admins can retrieve users.")
         ]
     )
-    @GetMapping
+    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getAllUsers(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "10") size: Int,
@@ -87,7 +88,7 @@ class UserController(
             ApiResponse(responseCode = "404", description = "User not found.")
         ]
     )
-    @GetMapping("/id")
+    @GetMapping("/id", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getUserById(@PathVariable id: UUID): ResponseEntity<UserResponse> =
         userService.getById(id).let { UserResponse.from(it) }.let { ResponseEntity.ok(it) }
 
@@ -112,7 +113,7 @@ class UserController(
             ApiResponse(responseCode = "404", description = "User not found.")
         ]
     )
-    @PostMapping("/{id}/unlock")
+    @PostMapping("/{id}/unlock", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun unlockUser(@PathVariable id: UUID): ResponseEntity<Void> {
         userService.unlockUser(id)
         return ResponseEntity.ok().build()
@@ -138,7 +139,7 @@ class UserController(
             ApiResponse(responseCode = "404", description = "User not found.")
         ]
     )
-    @PostMapping("/{id}/disable")
+    @PostMapping("/{id}/disable", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun disableUser(@PathVariable id: UUID): ResponseEntity<Void> {
         userService.disableUser(id)
         return ResponseEntity.ok().build()
@@ -164,7 +165,7 @@ class UserController(
             ApiResponse(responseCode = "204", description = "Role successfully assigned to user."),
         ]
     )
-    @PostMapping("/{id}/roles")
+    @PostMapping("/{id}/roles", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun assignRoleToUser(
         @PathVariable("id") userId: UUID,
         @RequestParam("role_id") roleId: UUID
@@ -193,7 +194,7 @@ class UserController(
             ApiResponse(responseCode = "204", description = "Role successfully removed from user.")
         ]
     )
-    @DeleteMapping("/{id}/roles/{role_id}")
+    @DeleteMapping("/{id}/roles/{role_id}", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun removeRoleFromUser(
         @PathVariable("id") userId: UUID,
         @PathVariable("role_id") roleId: UUID

@@ -129,7 +129,7 @@ class AuthService(
             .findByUsernameAndTenantId(request.username, request.clientId!!)
             .orElseThrow { EntityNotFoundException("User not found") }
 
-        var passwordResetToken = passwordResetTokenRepository.save(PasswordResetToken(user))
+        val passwordResetToken = passwordResetTokenRepository.save(PasswordResetToken(user))
         val passwordResetLink = userAccessManagementProperties.passwordResetUrl.replace("{tokent}", passwordResetToken.token)
 
         val mailRequest = MailRequest(

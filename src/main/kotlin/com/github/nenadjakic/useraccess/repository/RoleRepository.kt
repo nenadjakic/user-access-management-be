@@ -1,6 +1,5 @@
 package com.github.nenadjakic.useraccess.repository
 
-import com.github.nenadjakic.useraccess.entity.Permission
 import com.github.nenadjakic.useraccess.entity.Role
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable

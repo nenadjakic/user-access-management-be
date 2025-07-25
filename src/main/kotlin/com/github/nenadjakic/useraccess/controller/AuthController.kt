@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
@@ -41,7 +42,7 @@ class AuthController(
             ApiResponse(responseCode = "201", description = "User registered successfully.")
         ]
     )
-    @PostMapping("/register")
+    @PostMapping("/register", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun register(@Valid @RequestBody registerRequest: RegisterRequest): ResponseEntity<Void> {
         authService.register(registerRequest)
         return ResponseEntity.status(HttpStatus.CREATED).build()
@@ -66,7 +67,7 @@ class AuthController(
             ApiResponse(responseCode = "200", description = "Email confirmed successfully")
         ]
     )
-    @GetMapping("/verify-email")
+    @GetMapping("/verify-email", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun verifyEmail(
         @Parameter(
             description = "Verification token sent to the user's email.",
@@ -99,7 +100,7 @@ class AuthController(
             ApiResponse(responseCode = "200", description = "User signed in successfully.")
         ]
     )
-    @PostMapping("/signin")
+    @PostMapping("/signin", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun signIn(
         @Valid @RequestBody signInRequest: SignInRequest
     ): ResponseEntity<TokenResponse> =
@@ -133,7 +134,7 @@ class AuthController(
             ApiResponse(responseCode = "400", description = "Invalid request format.")
         ]
     )
-    @PostMapping("/forgot-password")
+    @PostMapping("/forgot-password", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun forgotPassword(@RequestBody request: ForgotPasswordRequest): ResponseEntity<Void> {
         authService.forgotPassword(request)
         return ResponseEntity.ok().build()
@@ -164,7 +165,7 @@ class AuthController(
             ApiResponse(responseCode = "200", description = "Password successfully reset.")
         ]
     )
-    @PostMapping("/reset-password")
+    @PostMapping("/reset-password", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun resetPassword(@RequestBody request: ResetPasswordRequest): ResponseEntity<Void> {
         authService.resetPassword(request)
         return ResponseEntity.ok().build()
@@ -193,7 +194,7 @@ class AuthController(
             ApiResponse(responseCode = "400", description = "Invalid request or password.")
         ]
     )
-    @PostMapping("/change-password")
+    @PostMapping("/change-password", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun changePassword(@Valid @RequestBody changePasswordRequest: ChangePasswordRequest): ResponseEntity<Void> {
         authService.changePassword(changePasswordRequest)
         return ResponseEntity.ok().build()

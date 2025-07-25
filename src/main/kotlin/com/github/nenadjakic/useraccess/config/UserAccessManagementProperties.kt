@@ -11,7 +11,7 @@ class UserAccessManagementProperties {
     lateinit var passwordResetUrl: String
     var mailMq: MailMqProperties = MailMqProperties()
     var jwt: JwtProperties = JwtProperties()
-    var clients: Map<String, ClientConfig> = emptyMap()
+    var security: SecurityProperties = SecurityProperties()
 
     class MailMqProperties {
         lateinit var queueName: String
@@ -21,8 +21,11 @@ class UserAccessManagementProperties {
         lateinit var issuer: String
         var validMinutes: Long = 10
     }
+    class SecurityProperties {
+        var cors: CorsProperties = CorsProperties()
+    }
 
-    class ClientConfig {
-        lateinit var clientId: String
+    class CorsProperties {
+        lateinit var allowedOrigins: List<String>
     }
 }

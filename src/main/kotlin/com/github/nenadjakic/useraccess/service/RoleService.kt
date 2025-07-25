@@ -2,7 +2,6 @@ package com.github.nenadjakic.useraccess.service
 
 import com.github.nenadjakic.useraccess.dto.RoleRequest
 import com.github.nenadjakic.useraccess.dto.RoleResponse
-import com.github.nenadjakic.useraccess.entity.Role
 import com.github.nenadjakic.useraccess.repository.RoleRepository
 import com.github.nenadjakic.useraccess.repository.TenantRepository
 import org.springframework.data.domain.Page

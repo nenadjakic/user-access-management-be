@@ -1,6 +1,5 @@
 package com.github.nenadjakic.useraccess.dto
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.github.nenadjakic.useraccess.validation.PasswordMatches
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotEmpty

@@ -3,7 +3,7 @@ package com.github.nenadjakic.useraccess.controller
 import com.github.nenadjakic.useraccess.annotation.CurrentTenantId
 import com.github.nenadjakic.useraccess.security.filter.JwtAuthenticationFilter
 import io.swagger.v3.oas.annotations.Parameter
-import org.hibernate.annotations.TenantId
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
@@ -15,7 +15,7 @@ import java.util.UUID
 @RestController
 @RequestMapping("/info")
 class InfoController {
-    @GetMapping("/me")
+    @GetMapping("/me", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun me(
         @Parameter(hidden = true)
         @CurrentTenantId tenantId: UUID

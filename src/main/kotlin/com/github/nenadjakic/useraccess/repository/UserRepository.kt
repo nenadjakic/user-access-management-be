@@ -1,7 +1,6 @@
 package com.github.nenadjakic.useraccess.repository
 
 import com.github.nenadjakic.useraccess.entity.User
-import org.hibernate.annotations.TenantId
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository

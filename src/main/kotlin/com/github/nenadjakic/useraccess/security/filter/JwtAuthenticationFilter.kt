@@ -54,7 +54,7 @@ class JwtAuthenticationFilter(
     private fun setAuthenticationContext(token: String, request: HttpServletRequest) {
         val userDetails: UserDetails = getUserDetails(token)
         val authentication = UsernamePasswordAuthenticationToken(userDetails, null, userDetails.authorities)
-        var claims = jwtService.extractAllClaims(token)
+        val claims = jwtService.extractAllClaims(token)
         authentication.details = AuthenticationDetails(claims, WebAuthenticationDetailsSource().buildDetails(request))
         SecurityContextHolder.getContext().authentication = authentication
     }
