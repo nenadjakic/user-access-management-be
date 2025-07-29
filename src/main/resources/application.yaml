@@ -27,7 +27,7 @@ spring:
 
   flyway:
     enabled: true
-    locations: classpath:db/migration/ddl,classpath:db/migration/data
+    locations: classpath:db/migration/ddl
     baselineOnMigrate: true
   rabbitmq:
     host: localhost
