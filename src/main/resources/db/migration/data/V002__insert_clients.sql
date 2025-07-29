@@ -1,2 +1,0 @@
-INSERT INTO "security".tenants (id, name, private_key_path, public_key_path, is_active)
-VALUES('46d1aa31-054f-43dc-b502-03012fe13e87', 'local_client', 'src/main/resources/private_key.pem', 'src/main/resources/public_key.pem', true);
